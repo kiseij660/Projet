@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Découvrir des profils — Vie à deux</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'DM Sans', sans-serif; background: #FAF6F0; color: #3A2218; }
+
+    /* ── NAV ── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 5vw; height: 68px;
+      background: rgba(139,26,26,0.97);
+      backdrop-filter: blur(10px);
+    }
+    .nav-logo {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.4rem; font-weight: 600; color: #fff;
+      text-decoration: none;
+    }
+    .nav-right { display: flex; align-items: center; gap: 16px; }
+    .nav-right a {
+      color: rgba(255,255,255,0.8); text-decoration: none;
+      font-size: 0.88rem; transition: color .2s;
+    }
+    .nav-right a:hover { color: #fff; }
+    .nav-avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: rgba(255,255,255,0.2);
+      border: 2px solid rgba(255,255,255,0.4);
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-size: 0.85rem; font-weight: 600;
+      cursor: pointer;
+    }
+
+    /* ── BIENVENUE BANNER ── */
+    .welcome-banner {
+      background: linear-gradient(135deg, #8B1A1A, #3A2218);
+      padding: 32px 5vw; text-align: center; color: #fff;
+    }
+    .welcome-banner h1 {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 2rem; font-weight: 400; margin-bottom: 8px;
+    }
+    .welcome-banner h1 em { font-style: italic; color: #f0c0c0; }
+    .welcome-banner p { color: rgba(255,255,255,0.7); font-size: 0.92rem; }
+    .steps-mini {
+      display: flex; justify-content: center; gap: 32px;
+      margin-top: 20px; flex-wrap: wrap;
+    }
+    .step-mini {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 0.82rem; color: rgba(255,255,255,0.6);
+    }
+    .step-mini .num {
+      width: 22px; height: 22px; border-radius: 50%;
+      background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.75rem; font-weight: 600; color: #fff;
+    }
+    .step-mini.done .num { background: #4CAF50; border-color: #4CAF50; }
+    .step-mini.done { color: rgba(255,255,255,0.9); }
+
+    /* ── FILTRES ── */
+    .filters-bar {
+      background: #fff; border-bottom: 1px solid #EDE5D8;
+      padding: 16px 5vw;
+      display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
+    }
+    .filters-bar select, .filters-bar input {
+      padding: 9px 14px; border: 1.5px solid #EDE5D8;
+      border-radius: 40px; font-size: 0.85rem;
+      font-family: 'DM Sans', sans-serif;
+      background: #FAF6F0; color: #3A2218;
+      outline: none; cursor: pointer;
+      transition: border-color .2s;
+    }
+    .filters-bar select:focus, .filters-bar input:focus { border-color: #8B1A1A; }
+    .filters-bar input { min-width: 180px; }
+    .filter-label { font-size: 0.8rem; color: #7A6E68; font-weight: 500; }
+    .count-info { margin-left: auto; font-size: 0.82rem; color: #7A6E68; }
+
+    /* ── GRILLE PROFILS ── */
+    .main { max-width: 1200px; margin: 0 auto; padding: 36px 5vw; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 24px;
+    }
+
+    .profile-card {
+      background: #fff; border-radius: 18px; overflow: hidden;
+      box-shadow: 0 4px 24px rgba(58,34,24,0.08);
+      transition: transform .3s, box-shadow .3s;
+      cursor: pointer;
+    }
+    .profile-card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 16px 48px rgba(58,34,24,0.15);
+    }
+    .profile-img-wrap { position: relative; aspect-ratio: 3/4; overflow: hidden; }
+    .profile-img {
+      width: 100%; height: 100%; object-fit: cover;
+      transition: transform .4s;
+    }
+    .profile-card:hover .profile-img { transform: scale(1.05); }
+    .profile-badge {
+      position: absolute; top: 12px; left: 12px;
+      background: rgba(139,26,26,0.85); color: #fff;
+      font-size: 0.7rem; padding: 4px 10px; border-radius: 40px;
+      backdrop-filter: blur(4px);
+    }
+    .profile-online {
+      position: absolute; top: 12px; right: 12px;
+      width: 10px; height: 10px; border-radius: 50%;
+      background: #4CAF50; border: 2px solid #fff;
+    }
+    .like-btn {
+      position: absolute; bottom: 12px; right: 12px;
+      width: 38px; height: 38px; border-radius: 50%;
+      background: rgba(255,255,255,0.9);
+      border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.1rem; transition: all .2s;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    .like-btn:hover, .like-btn.liked { background: #8B1A1A; color: #fff; transform: scale(1.1); }
+
+    .profile-info { padding: 18px 20px 20px; }
+    .profile-name {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.2rem; font-weight: 600; color: #3A2218;
+    }
+    .profile-meta { font-size: 0.82rem; color: #7A6E68; margin-top: 3px; }
+    .profile-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+    .tag {
+      font-size: 0.72rem; padding: 3px 10px; border-radius: 40px;
+      background: #FAF6F0; color: #7A6E68;
+      border: 1px solid #EDE5D8;
+    }
+    .profile-actions {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 8px; margin-top: 14px;
+    }
+    .btn-msg {
+      padding: 9px; border-radius: 10px; font-size: 0.82rem;
+      font-family: 'DM Sans', sans-serif; cursor: pointer;
+      transition: all .2s; font-weight: 500;
+      text-align: center; border: none;
+    }
+    .btn-msg-primary { background: #8B1A1A; color: #fff; }
+    .btn-msg-primary:hover { background: #B94040; }
+    .btn-msg-secondary { background: #FAF6F0; color: #3A2218; border: 1.5px solid #EDE5D8; }
+    .btn-msg-secondary:hover { background: #EDE5D8; }
+
+    /* ── PAGINATION ── */
+    .pagination {
+      display: flex; justify-content: center; gap: 8px;
+      margin-top: 48px;
+    }
+    .page-btn {
+      width: 38px; height: 38px; border-radius: 10px;
+      border: 1.5px solid #EDE5D8; background: #fff;
+      color: #3A2218; font-size: 0.88rem; cursor: pointer;
+      transition: all .2s; display: flex; align-items: center; justify-content: center;
+    }
+    .page-btn:hover, .page-btn.active { background: #8B1A1A; color: #fff; border-color: #8B1A1A; }
+
+    /* ── MODAL ── */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.6); z-index: 200;
+      align-items: center; justify-content: center;
+      backdrop-filter: blur(4px);
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: #fff; border-radius: 20px;
+      width: 90%; max-width: 480px; overflow: hidden;
+      box-shadow: 0 32px 80px rgba(0,0,0,0.3);
+      animation: popIn .3s cubic-bezier(.34,1.56,.64,1);
+    }
+    @keyframes popIn {
+      from { transform: scale(0.85); opacity: 0; }
+      to   { transform: scale(1);    opacity: 1; }
+    }
+    .modal-img { width: 100%; height: 260px; object-fit: cover; object-position: top; }
+    .modal-body { padding: 24px 28px; }
+    .modal-name {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.8rem; font-weight: 600; color: #3A2218;
+    }
+    .modal-meta { color: #7A6E68; font-size: 0.88rem; margin-top: 4px; margin-bottom: 14px; }
+    .modal-desc { font-size: 0.9rem; color: #5A4A3A; line-height: 1.7; margin-bottom: 16px; }
+    .modal-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 20px; }
+    .modal-actions { display: flex; gap: 10px; }
+    .modal-btn {
+      flex: 1; padding: 12px; border-radius: 12px; border: none;
+      font-family: 'DM Sans', sans-serif; font-size: 0.9rem;
+      font-weight: 500; cursor: pointer; transition: all .2s;
+    }
+    .modal-btn-primary { background: #8B1A1A; color: #fff; }
+    .modal-btn-primary:hover { background: #B94040; }
+    .modal-btn-close {
+      background: #FAF6F0; color: #3A2218;
+      border: 1.5px solid #EDE5D8 !important;
+    }
+    .modal-btn-close:hover { background: #EDE5D8; }
+
+
+    .profile-cta {
+      margin-top: 14px;
+      background: linear-gradient(135deg, #fce8e8, #FAF6F0);
+      border: 1px solid rgba(139,26,26,0.15);
+      border-radius: 10px; padding: 12px 14px; text-align: center;
+    }
+    .cta-text { font-size: 0.88rem; color: #8B1A1A; font-weight: 500; }
+    .cta-sub  { font-size: 0.75rem; color: #7A6E68; margin-top: 2px; }
+
+    /* Bannière info */
+    .info-banner {
+      background: #fff; border-left: 4px solid #8B1A1A;
+      margin: 24px auto; max-width: 1100px;
+      border-radius: 0 12px 12px 0;
+      padding: 18px 24px;
+      display: flex; align-items: center; gap: 16px;
+      box-shadow: 0 4px 16px rgba(58,34,24,0.08);
+    }
+    .info-banner .icon { font-size: 1.6rem; flex-shrink: 0; }
+    .info-banner h4 { font-size: 0.95rem; color: #3A2218; font-weight: 600; margin-bottom: 3px; }
+    .info-banner p  { font-size: 0.82rem; color: #7A6E68; line-height: 1.5; }
+    @media (max-width: 600px) {
+      .grid { grid-template-columns: 1fr 1fr; gap: 14px; }
+      .steps-mini { gap: 16px; }
+    }
+    @media (max-width: 380px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html" class="nav-logo">♡ Vie à deux</a>
+  <div class="nav-right">
+    <a href="index.html">Accueil</a>
+    
+    <div class="nav-avatar" title="Mon profil">V</div>
+  </div>
+</nav>
+
+<!-- BIENVENUE -->
+<div class="welcome-banner">
+  <h1>Bienvenue ! Votre profil est <em>créé</em> ✓</h1>
+  <p>Découvrez maintenant des profils compatibles près de chez vous</p>
+  <div class="steps-mini">
+    <div class="step-mini done">
+      <div class="num">✓</div>
+      <span>Créer votre profil</span>
+    </div>
+    <div class="step-mini done">
+      <div class="num">✓</div>
+      <span>Découvrir des profils</span>
+    </div>
+    <div class="step-mini">
+      <div class="num">3</div>
+      <span>Discuter & rencontrer</span>
+    </div>
+  </div>
+</div>
+
+<!-- FILTRES -->
+<div class="filters-bar">
+  <span class="filter-label">Filtrer :</span>
+  <select id="f-genre" onchange="filtrer()">
+    <option value="">Tous les profils</option>
+    <option value="femme">Femmes</option>
+    <option value="homme">Hommes</option>
+  </select>
+  <select id="f-age" onchange="filtrer()">
+    <option value="">Tous les âges</option>
+    <option value="18-29">18 – 29 ans</option>
+    <option value="30-39">30 – 39 ans</option>
+    <option value="40-55">40 – 55 ans</option>
+    <option value="55+">55 ans et +</option>
+  </select>
+  <select id="f-ville" onchange="filtrer()">
+    <option value="">Toutes les villes</option>
+    <option value="paris">Paris</option>
+    <option value="lyon">Lyon</option>
+    <option value="marseille">Marseille</option>
+    <option value="bordeaux">Bordeaux</option>
+    <option value="nice">Nice / Monaco</option>
+  </select>
+  <span class="count-info" id="count-info">12 profils trouvés</span>
+</div>
+
+<!-- GRILLE -->
+<div class="main">
+  <div class="info-banner">
+    <div class="icon">📞</div>
+    <div>
+      <h4>Comment ça marche ?</h4>
+      <p>Parcourez les profils et repérez vos coups de cœur. Notre équipe vous rappelle personnellement sous 24h pour vous mettre en contact.</p>
+    </div>
+  </div>
+  <div class="grid" id="grid"></div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal" onclick="closeModal(event)">
+  <div class="modal">
+    <img id="modal-img" src="" alt="" class="modal-img"/>
+    <div class="modal-body">
+      <div class="modal-name" id="modal-name"></div>
+      <div class="modal-meta" id="modal-meta"></div>
+      <div class="modal-desc" id="modal-desc"></div>
+      <div class="modal-tags" id="modal-tags"></div>
+      <div class="modal-actions">
+        <button class="modal-btn modal-btn-primary" onclick="document.getElementById('modal').classList.remove('open')">✓ Je suis intéressé(e)</button>
+        <button class="modal-btn modal-btn-close" onclick="document.getElementById('modal').classList.remove('open')">Fermer</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const profils = [
+  { id:1,  nom:"Sarah",    age:34, ville:"Paris",     genre:"femme",  img:"https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?w=400&q=80", tags:["Voyages","Yoga","Cuisine"],        desc:"Passionnée de voyages et de gastronomie, je cherche quelqu'un avec qui partager de belles aventures et de bons moments simples.", online:true  },
+  { id:2,  nom:"Élodie",   age:29, ville:"Lyon",      genre:"femme",  img:"https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=400&q=80", tags:["Musique","Cinéma","Running"],      desc:"Amoureuse de musique et de grands espaces. Je cherche une relation sincère et durable avec quelqu'un de bienveillant.", online:true  },
+  { id:3,  nom:"Clarisse", age:35, ville:"Bordeaux",  genre:"femme",  img:"https://images.unsplash.com/photo-1589156215264-c8a1b13f5c6a?w=400&q=80", tags:["Nature","Lecture","Art"],          desc:"Artiste dans l'âme, j'aime la nature et les longues promenades. Je cherche quelqu'un de curieux et de créatif.", online:false },
+  { id:4,  nom:"Lydia",    age:46, ville:"Toulouse",  genre:"femme",  img:"https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&q=80", tags:["Gastronomie","Jardinage","Randonnée"], desc:"Maman de deux grands enfants, j'aime cuisiner, jardiner et profiter de la vie. Cherche une belle complicité.", online:false },
+  { id:5,  nom:"Camille",  age:27, ville:"Paris",     genre:"femme",  img:"https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=400&q=80", tags:["Danse","Photo","Café"],            desc:"Jeune professionnelle parisienne, j'aime la danse et la photographie. À la recherche d'une belle rencontre authentique.", online:true  },
+  { id:6,  nom:"Nathalie", age:42, ville:"Nice",      genre:"femme",  img:"https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?w=400&q=80", tags:["Mer","Sport","Voyages"],           desc:"J'adore la mer et le soleil. Sportive et dynamique, je cherche quelqu'un pour partager de belles sorties et voyages.", online:true  },
+  { id:7,  nom:"Thomas",   age:31, ville:"Paris",     genre:"homme",  img:"https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&q=80", tags:["Sport","Musique","Tech"],          desc:"Ingénieur passionné de musique et de sport. Je cherche quelqu'un de sincère avec qui construire quelque chose de vrai.", online:true  },
+  { id:8,  nom:"Lucas",    age:28, ville:"Lyon",      genre:"homme",  img:"https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&q=80", tags:["Cinéma","Cuisine","Voyage"],       desc:"Cuisinier amateur et grand voyageur. À la recherche d'une partenaire pour partager aventures et bons repas.", online:false },
+  { id:9,  nom:"Antoine",  age:38, ville:"Marseille", genre:"homme",  img:"https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400&q=80", tags:["Mer","Rugby","Photographie"],     desc:"Marseillais dans l'âme, j'aime la mer et le sport. Cherche une relation sérieuse et sincère.", online:true  },
+  { id:10, nom:"Pierre",   age:45, ville:"Bordeaux",  genre:"homme",  img:"https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&q=80", tags:["Vin","Golf","Lecture"],            desc:"Amateur de bon vin et de golf, je cherche une femme avec qui partager de belles soirées et des discussions enrichissantes.", online:false },
+  { id:11, nom:"Julien",   age:33, ville:"Nice",      genre:"homme",  img:"https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&q=80", tags:["Moto","Montagne","Musique"],      desc:"Passionné de moto et de montagne, je cherche quelqu'un d'aventurier qui n'a pas peur de vivre pleinement.", online:true  },
+  { id:12, nom:"Marc",     age:52, ville:"Paris",     genre:"homme",  img:"https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400&q=80", tags:["Théâtre","Gastronomie","Voyages"], desc:"Chef d'entreprise passionné par la culture et les voyages. Cherche une femme cultivée pour une relation sérieuse.", online:false },
+];
+
+let liked = new Set();
+
+function renderCard(p) {
+  return `
+    <div class="profile-card" onclick="openModal(${p.id})">
+      <div class="profile-img-wrap">
+        <img src="${p.img}" alt="${p.nom}" class="profile-img" loading="lazy"/>
+        <span class="profile-badge">${p.genre === 'femme' ? '♀' : '♂'} ${p.age} ans</span>
+        ${p.online ? '<div class="profile-online" title="En ligne"></div>' : ''}
+        <button class="like-btn ${liked.has(p.id)?'liked':''}" onclick="toggleLike(event,${p.id})">
+          ${liked.has(p.id) ? '♥' : '♡'}
+        </button>
+      </div>
+      <div class="profile-info">
+        <div class="profile-name">${p.nom}</div>
+        <div class="profile-meta">📍 ${p.ville} · ${p.online ? '<span style="color:#4CAF50">En ligne</span>' : 'Hors ligne'}</div>
+        <div class="profile-tags">${p.tags.map(t=>`<span class="tag">${t}</span>`).join('')}</div>
+        <div class="profile-cta">
+          <div class="cta-text">💌 Intéressé(e) ?</div>
+          <div class="cta-sub">Nous vous contactons sous 24h</div>
+        </div>
+      </div>
+    </div>`;
+}
+
+function filtrer() {
+  const genre = document.getElementById('f-genre').value;
+  const age   = document.getElementById('f-age').value;
+  const ville = document.getElementById('f-ville').value;
+
+  let result = profils.filter(p => {
+    if (genre && p.genre !== genre) return false;
+    if (ville && !p.ville.toLowerCase().includes(ville)) return false;
+    if (age) {
+      const [min, max] = age === '55+' ? [55, 999] : age.split('-').map(Number);
+      if (p.age < min || p.age > max) return false;
+    }
+    return true;
+  });
+
+  document.getElementById('grid').innerHTML = result.map(renderCard).join('');
+  document.getElementById('count-info').textContent = `${result.length} profil${result.length > 1 ? 's' : ''} trouvé${result.length > 1 ? 's' : ''}`;
+}
+
+function toggleLike(e, id) {
+  e.stopPropagation();
+  liked.has(id) ? liked.delete(id) : liked.add(id);
+  filtrer();
+}
+// Intérêt enregistré visuellement
+
+function openModal(id) {
+  const p = profils.find(x => x.id === id);
+  document.getElementById('modal-img').src   = p.img;
+  document.getElementById('modal-name').textContent = `${p.nom}, ${p.age} ans`;
+  document.getElementById('modal-meta').textContent = `📍 ${p.ville} · ${p.online ? '🟢 En ligne' : '⚫ Hors ligne'}`;
+  document.getElementById('modal-desc').textContent = p.desc;
+  document.getElementById('modal-tags').innerHTML = p.tags.map(t=>`<span class="tag">${t}</span>`).join('');
+  document.getElementById('modal').classList.add('open');
+}
+
+function closeModal(e) {
+  if (e.target === document.getElementById('modal'))
+    document.getElementById('modal').classList.remove('open');
+}
+
+// Init
+filtrer();
+</script>
+</body>
+</html>
