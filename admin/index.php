@@ -39,7 +39,7 @@ if ($connecte) {
     $filtre_genre = $_GET['genre'] ?? '';
     $ordre = in_array($_GET['ordre'] ?? '', ['date_inscription','age','ville']) ? $_GET['ordre'] : 'date_inscription';
 
-    $sql = "SELECT * FROM inscriptions WHERE actif = 1";
+    $sql = "SELECT *, TIMESTAMPDIFF(YEAR, date_naissance, CURDATE()) AS age FROM inscriptions WHERE actif = 1";
     $params = [];
     if ($search) {
         $sql .= " AND (ville LIKE :q OR telephone LIKE :q)";
@@ -67,6 +67,7 @@ if ($connecte) {
 <html lang="fr">
 <head>
   <meta charset="UTF-8"/>
+    <meta name="robots" content="noindex, nofollow"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Administration — Vie à deux</title>
   <style>
