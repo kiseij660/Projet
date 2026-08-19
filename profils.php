@@ -1,10 +1,6 @@
 <?php
-// ============================================================
-//  profils.php — Page des profils (session requise)
-// ============================================================
 session_start();
 
-// Rediriger si pas connecté
 if (empty($_SESSION['user_id'])) {
     header('Location: connexion.php');
     exit;
@@ -22,7 +18,10 @@ try {
     die('Erreur BDD : ' . $e->getMessage());
 }
 
-// Récupérer tous les membres sauf l'utilisateur connecté
+// ── Définir AVANT d'utiliser ──
+$user_id     = $_SESSION['user_id'];
+$prenom_user = $_SESSION['prenom'];
+
 $stmt = $pdo->prepare("SELECT id, prenom, nom, je_suis, ville, date_naissance, centres_interet, photo, 
     TIMESTAMPDIFF(YEAR, date_naissance, CURDATE()) AS age 
     FROM inscriptions 
@@ -30,222 +29,61 @@ $stmt = $pdo->prepare("SELECT id, prenom, nom, je_suis, ville, date_naissance, c
     ORDER BY date_inscription DESC");
 $stmt->execute([':id' => $user_id]);
 $membres = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-$user_id    = $_SESSION['user_id'];
-$prenom_user = $_SESSION['prenom'];
 ?>
 <!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="UTF-8"/>
+  <meta name="robots" content="noindex"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Découvrir des profils — Vie à deux</title>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'DM Sans', sans-serif; background: #FAF6F0; color: #3A2218; }
-
-    /* ── NAV ── */
     nav {
       position: sticky; top: 0; z-index: 100;
       display: flex; align-items: center; justify-content: space-between;
       padding: 0 5vw; height: 68px;
-      background: rgba(139,26,26,0.97);
-      backdrop-filter: blur(10px);
+      background: rgba(139,26,26,0.97); backdrop-filter: blur(10px);
     }
-    .nav-logo {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 1.4rem; font-weight: 600; color: #fff;
-      text-decoration: none;
-    }
+    .nav-logo { font-family: 'Cormorant Garamond', serif; font-size: 1.4rem; font-weight: 600; color: #fff; text-decoration: none; }
     .nav-right { display: flex; align-items: center; gap: 20px; }
     .nav-right a { color: rgba(255,255,255,0.8); text-decoration: none; font-size: 0.88rem; transition: color .2s; }
     .nav-right a:hover { color: #fff; }
-    .nav-avatar {
-      width: 36px; height: 36px; border-radius: 50%;
-      background: rgba(255,255,255,0.2);
-      border: 2px solid rgba(255,255,255,0.4);
-      display: flex; align-items: center; justify-content: center;
-      color: #fff; font-size: 0.85rem; font-weight: 600;
-      cursor: pointer; text-decoration: none;
-    }
-    .nav-logout {
-      font-size: 0.82rem; color: rgba(255,255,255,0.6) !important;
-    }
-
-    /* ── BANNER ── */
-    .welcome-banner {
-      background: linear-gradient(135deg, #8B1A1A, #3A2218);
-      padding: 28px 5vw; color: #fff;
-      display: flex; align-items: center; justify-content: space-between;
-      flex-wrap: wrap; gap: 12px;
-    }
-    .welcome-banner h1 {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 1.6rem; font-weight: 400;
-    }
+    .nav-avatar { width: 36px; height: 36px; border-radius: 50%; background: rgba(255,255,255,0.2); border: 2px solid rgba(255,255,255,0.4); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 0.85rem; font-weight: 600; }
+    .welcome-banner { background: linear-gradient(135deg, #8B1A1A, #3A2218); padding: 28px 5vw; color: #fff; }
+    .welcome-banner h1 { font-family: 'Cormorant Garamond', serif; font-size: 1.6rem; font-weight: 400; }
     .welcome-banner h1 em { font-style: italic; color: #f0c0c0; }
     .welcome-banner p { color: rgba(255,255,255,0.65); font-size: 0.88rem; margin-top: 4px; }
-
-    /* ── FILTRES ── */
-    .filters-bar {
-      background: #fff; border-bottom: 1px solid #EDE5D8;
-      padding: 14px 5vw;
-      display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
-    }
-    .filters-bar select {
-      padding: 9px 14px; border: 1.5px solid #EDE5D8;
-      border-radius: 40px; font-size: 0.85rem;
-      font-family: 'DM Sans', sans-serif;
-      background: #FAF6F0; color: #3A2218;
-      outline: none; cursor: pointer;
-      transition: border-color .2s;
-    }
+    .filters-bar { background: #fff; border-bottom: 1px solid #EDE5D8; padding: 14px 5vw; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    .filters-bar select { padding: 9px 14px; border: 1.5px solid #EDE5D8; border-radius: 40px; font-size: 0.85rem; font-family: 'DM Sans', sans-serif; background: #FAF6F0; color: #3A2218; outline: none; cursor: pointer; }
     .filters-bar select:focus { border-color: #8B1A1A; }
     .filter-label { font-size: 0.8rem; color: #7A6E68; font-weight: 500; }
     .count-info { margin-left: auto; font-size: 0.82rem; color: #7A6E68; }
-
-    /* ── GRILLE ── */
     .main { max-width: 1200px; margin: 0 auto; padding: 36px 5vw; }
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-      gap: 24px;
-    }
-    .empty-state {
-      grid-column: 1/-1; text-align: center;
-      padding: 60px; color: #B0A8A0; font-size: 0.95rem;
-    }
-
-    /* ── CARD PROFIL ── */
-    .profile-card {
-      background: #fff; border-radius: 18px; overflow: hidden;
-      box-shadow: 0 4px 24px rgba(58,34,24,0.08);
-      transition: transform .3s, box-shadow .3s;
-    }
-    .profile-card:hover {
-      transform: translateY(-6px);
-      box-shadow: 0 16px 48px rgba(58,34,24,0.15);
-    }
-    .profile-img-wrap .profile-badge { position:absolute;top:12px;left:12px; }
-    .profile-img-wrap .like-btn { position:absolute;bottom:12px;right:12px; }
-    .profile-avatar {
-      width: 100%; aspect-ratio: 1;
-      background: linear-gradient(135deg, #EDE5D8, #D4C5B0);
-      display: flex; align-items: center; justify-content: center;
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 4rem; color: #8B1A1A; position: relative;
-    }
-    .profile-badge {
-      position: absolute; top: 12px; left: 12px;
-      background: rgba(139,26,26,0.85); color: #fff;
-      font-size: 0.7rem; padding: 4px 10px; border-radius: 40px;
-    }
-    .like-btn {
-      position: absolute; bottom: 12px; right: 12px;
-      width: 38px; height: 38px; border-radius: 50%;
-      background: rgba(255,255,255,0.9); border: none; cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 1.1rem; transition: all .2s;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-    }
-    .like-btn:hover { background: #8B1A1A; color: #fff; transform: scale(1.1); }
-    .like-btn.liked { background: #8B1A1A; color: #fff; }
-
-    .profile-info { padding: 18px 20px 20px; }
-    .profile-name {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 1.2rem; font-weight: 600; color: #3A2218;
-    }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 24px; }
+    .empty-state { grid-column: 1/-1; text-align: center; padding: 60px; color: #B0A8A0; }
+    .profile-card { background: #fff; border-radius: 18px; overflow: hidden; box-shadow: 0 4px 24px rgba(58,34,24,0.08); transition: transform .3s, box-shadow .3s; }
+    .profile-card:hover { transform: translateY(-6px); box-shadow: 0 16px 48px rgba(58,34,24,0.15); }
+    .profile-badge { position: absolute; top: 12px; left: 12px; background: rgba(139,26,26,0.85); color: #fff; font-size: 0.7rem; padding: 4px 10px; border-radius: 40px; }
+    .like-btn { position: absolute; bottom: 12px; right: 12px; width: 38px; height: 38px; border-radius: 50%; background: rgba(255,255,255,0.9); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; transition: all .2s; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+    .like-btn:hover, .like-btn.liked { background: #8B1A1A; color: #fff; transform: scale(1.1); }
+    .profile-info { padding: 16px 18px 18px; }
+    .profile-name { font-family: 'Cormorant Garamond', serif; font-size: 1.2rem; font-weight: 600; color: #3A2218; }
     .profile-meta { font-size: 0.82rem; color: #7A6E68; margin-top: 3px; }
-
-    .profile-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
-    .btn-action {
-      padding: 9px; border-radius: 10px; font-size: 0.82rem;
-      font-family: 'DM Sans', sans-serif; cursor: pointer;
-      transition: all .2s; font-weight: 500;
-      text-align: center; border: none;
-    }
-    .btn-primary { background: #8B1A1A; color: #fff; }
-    .btn-primary:hover { background: #B94040; }
-    .btn-secondary { background: #FAF6F0; color: #3A2218; border: 1.5px solid #EDE5D8; }
-    .btn-secondary:hover { background: #EDE5D8; }
-
-    /* ── MODAL MESSAGE ── */
-    .modal-overlay {
-      display: none; position: fixed; inset: 0;
-      background: rgba(0,0,0,0.5); z-index: 200;
-      align-items: center; justify-content: center;
-      backdrop-filter: blur(4px);
-    }
-    .modal-overlay.open { display: flex; }
-    .modal {
-      background: #fff; border-radius: 20px;
-      width: 90%; max-width: 460px;
-      padding: 36px; position: relative;
-      box-shadow: 0 32px 80px rgba(0,0,0,0.25);
-      animation: popIn .3s cubic-bezier(.34,1.56,.64,1);
-    }
-    @keyframes popIn {
-      from { transform: scale(0.85); opacity: 0; }
-      to   { transform: scale(1);    opacity: 1; }
-    }
-    .modal h3 {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 1.5rem; color: #3A2218; margin-bottom: 6px;
-    }
-    .modal p.sub { font-size: 0.85rem; color: #7A6E68; margin-bottom: 20px; }
-    .modal textarea {
-      width: 100%; height: 120px;
-      border: 1.5px solid #EDE5D8; border-radius: 12px;
-      padding: 14px; font-family: 'DM Sans', sans-serif;
-      font-size: 0.9rem; color: #3A2218; resize: none; outline: none;
-      background: #FAF6F0; transition: border-color .2s;
-    }
-    .modal textarea:focus { border-color: #8B1A1A; background: #fff; }
-    .modal-actions { display: flex; gap: 10px; margin-top: 16px; }
-    .modal-btn {
-      flex: 1; padding: 12px; border-radius: 12px; border: none;
-      font-family: 'DM Sans', sans-serif; font-size: 0.9rem;
-      font-weight: 500; cursor: pointer; transition: all .2s;
-    }
-    .modal-btn-send { background: #8B1A1A; color: #fff; }
-    .modal-btn-send:hover { background: #B94040; }
-    .modal-btn-cancel { background: #FAF6F0; color: #3A2218; border: 1.5px solid #EDE5D8; }
-    .modal-btn-cancel:hover { background: #EDE5D8; }
-    .modal-success {
-      display: none; text-align: center; padding: 20px 0;
-    }
-    .modal-success .check { font-size: 2.5rem; margin-bottom: 10px; }
-    .modal-success p { color: #3A2218; font-size: 0.95rem; }
-
-    /* ── MODAL PROFIL ── */
-    .modal-profil-info { margin-bottom: 20px; }
-    .modal-profil-info .big-avatar {
-      width: 80px; height: 80px; border-radius: 50%;
-      background: linear-gradient(135deg, #EDE5D8, #D4C5B0);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 2.5rem; margin: 0 auto 14px;
-    }
-    .info-row {
-      display: flex; justify-content: space-between;
-      padding: 10px 0; border-bottom: 1px solid #f0ece6;
-      font-size: 0.88rem;
-    }
-    .info-row span:first-child { color: #7A6E68; }
-    .info-row span:last-child { color: #3A2218; font-weight: 500; }
-
-    .profile-cta {
-      margin-top: 14px;
-      background: linear-gradient(135deg, #fce8e8, #FAF6F0);
-      border: 1px solid rgba(139,26,26,0.15);
-      border-radius: 10px; padding: 12px 14px; text-align: center;
-    }
-    .cta-text { font-size: 0.88rem; color: #8B1A1A; font-weight: 500; }
-    .cta-sub  { font-size: 0.75rem; color: #7A6E68; margin-top: 2px; }
-    @media (max-width: 600px) {
-      .grid { grid-template-columns: 1fr 1fr; gap: 14px; }
-    }
+    .profile-tags { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 8px; }
+    .tag { font-size: 0.7rem; padding: 3px 8px; border-radius: 20px; background: #FAF6F0; color: #7A6E68; border: 1px solid #EDE5D8; }
+    .profile-cta { margin-top: 12px; background: linear-gradient(135deg, #fce8e8, #FAF6F0); border: 1px solid rgba(139,26,26,0.15); border-radius: 10px; padding: 10px 14px; text-align: center; }
+    .cta-text { font-size: 0.85rem; color: #8B1A1A; font-weight: 500; }
+    .cta-sub { font-size: 0.73rem; color: #7A6E68; margin-top: 2px; }
+    .action-btns { display: flex; gap: 6px; margin-top: 8px; }
+    .action-btns a { flex: 1; text-align: center; padding: 7px; border-radius: 8px; font-size: 0.75rem; text-decoration: none; transition: all .2s; border: 1px solid; }
+    .btn-signaler { color: #8B1A1A; background: #fce8e8; border-color: rgba(139,26,26,0.2); }
+    .btn-signaler:hover { background: #8B1A1A; color: #fff; }
+    .btn-bloquer { color: #3A2218; background: #FAF6F0; border-color: #EDE5D8; }
+    .btn-bloquer:hover { background: #3A2218; color: #fff; }
+    @media (max-width: 600px) { .grid { grid-template-columns: 1fr 1fr; gap: 14px; } }
   </style>
 </head>
 <body>
@@ -254,20 +92,17 @@ $prenom_user = $_SESSION['prenom'];
   <a href="profils.php" class="nav-logo">♡ Vie à deux</a>
   <div class="nav-right">
     <span style="color:rgba(255,255,255,0.7);font-size:0.85rem">Bonjour, <?= htmlspecialchars($prenom_user) ?> 👋</span>
-    <a href="parametres.php" style="color:rgba(255,255,255,0.8);text-decoration:none;font-size:0.88rem;">⚙ Paramètres</a>
-    <a href="deconnexion.php" class="nav-logout">Déconnexion</a>
-    <a href="#" class="nav-avatar"><?= strtoupper(substr($prenom_user, 0, 1)) ?></a>
+    <a href="parametres.php">⚙ Paramètres</a>
+    <a href="deconnexion.php" style="color:rgba(255,255,255,0.6)!important">Déconnexion</a>
+    <div class="nav-avatar"><?= strtoupper(substr($prenom_user, 0, 1)) ?></div>
   </div>
 </nav>
 
 <div class="welcome-banner">
-  <div>
-    <h1>Bonjour <em><?= htmlspecialchars($prenom_user) ?></em> !</h1>
-    <p><?= count($membres) ?> membre<?= count($membres) > 1 ? 's' : '' ?> vous attend<?= count($membres) > 1 ? 'ent' : '' ?></p>
-  </div>
+  <h1>Bonjour <em><?= htmlspecialchars($prenom_user) ?></em> !</h1>
+  <p><?= count($membres) ?> profil<?= count($membres) > 1 ? 's' : '' ?> vous attend<?= count($membres) > 1 ? 'ent' : '' ?></p>
 </div>
 
-<!-- FILTRES -->
 <div class="filters-bar">
   <span class="filter-label">Filtrer :</span>
   <select id="f-genre" onchange="filtrer()">
@@ -285,55 +120,50 @@ $prenom_user = $_SESSION['prenom'];
   <span class="count-info" id="count-info"><?= count($membres) ?> profil<?= count($membres) > 1 ? 's' : '' ?> trouvé<?= count($membres) > 1 ? 's' : '' ?></span>
 </div>
 
-<!-- GRILLE -->
 <div class="main">
-  <div style="background:#fff;border-left:4px solid #8B1A1A;border-radius:0 12px 12px 0;padding:18px 24px;margin-bottom:28px;display:flex;align-items:center;gap:16px;box-shadow:0 4px 16px rgba(58,34,24,0.08);">
-    <div style="font-size:1.6rem">📞</div>
+  <div style="background:#fff;border-left:4px solid #8B1A1A;border-radius:0 12px 12px 0;padding:16px 22px;margin-bottom:28px;display:flex;align-items:center;gap:14px;box-shadow:0 4px 16px rgba(58,34,24,0.08);">
+    <div style="font-size:1.5rem">📞</div>
     <div>
-      <h4 style="font-size:0.95rem;color:#3A2218;margin-bottom:3px;">Comment ça marche ?</h4>
-      <p style="font-size:0.82rem;color:#7A6E68;">Parcourez les profils et repérez vos coups de cœur. Notre équipe vous rappelle personnellement sous 24h.</p>
+      <h4 style="font-size:0.92rem;color:#3A2218;margin-bottom:2px;">Comment ça marche ?</h4>
+      <p style="font-size:0.8rem;color:#7A6E68;">Parcourez les profils, repérez vos coups de cœur. Notre équipe vous rappelle sous 24h.</p>
     </div>
   </div>
+
   <div class="grid" id="grid">
     <?php if (empty($membres)): ?>
       <div class="empty-state">Aucun autre membre pour l'instant. Revenez bientôt !</div>
     <?php else: ?>
       <?php foreach ($membres as $m): ?>
-        <div class="profile-card"
-             data-genre="<?= htmlspecialchars($m['je_suis']) ?>"
-             data-age="<?= $m['age'] ?>">
-          <div class="profile-img-wrap" style="position:relative;aspect-ratio:3/4;overflow:hidden;">
+        <div class="profile-card" data-genre="<?= htmlspecialchars($m['je_suis']) ?>" data-age="<?= $m['age'] ?>">
+          <div style="position:relative;aspect-ratio:3/4;overflow:hidden;">
             <?php if (!empty($m['photo'])): ?>
               <img src="<?= htmlspecialchars($m['photo']) ?>" alt="<?= htmlspecialchars($m['prenom']) ?>" style="width:100%;height:100%;object-fit:cover;display:block;" loading="lazy"/>
             <?php else: ?>
-              <div style="width:100%;height:100%;background:linear-gradient(135deg,#EDE5D8,#D4C5B0);display:flex;align-items:center;justify-content:center;font-size:4rem;color:#8B1A1A;">
+              <div style="width:100%;height:100%;background:linear-gradient(135deg,#EDE5D8,#D4C5B0);display:flex;align-items:center;justify-content:center;font-size:4rem;color:#8B1A1A;font-family:'Cormorant Garamond',serif;">
                 <?= strtoupper(substr($m['prenom'], 0, 1)) ?>
               </div>
             <?php endif; ?>
             <span class="profile-badge"><?= $m['je_suis'] === 'Une femme' ? '♀' : '♂' ?> <?= $m['age'] ?> ans</span>
-            <button class="like-btn" onclick="toggleLike(this)" title="J'aime">♡</button>
+            <button class="like-btn" onclick="toggleLike(this)">♡</button>
           </div>
           <div class="profile-info">
             <div class="profile-name"><?= htmlspecialchars($m['prenom']) ?>, <?= $m['age'] ?> ans</div>
             <div class="profile-meta">📍 <?= htmlspecialchars($m['ville']) ?></div>
+            <?php if (!empty($m['centres_interet'])): ?>
+              <div class="profile-tags">
+                <?php foreach (explode(',', $m['centres_interet']) as $tag): ?>
+                  <span class="tag"><?= htmlspecialchars(trim($tag)) ?></span>
+                <?php endforeach; ?>
+              </div>
+            <?php endif; ?>
             <div class="profile-cta">
-            <div class="cta-text">💌 Intéressé(e) ?</div>
-            <div class="cta-sub">Notre équipe vous contacte sous 24h</div>
-          </div>
-          <div style="display:flex;gap:6px;margin-top:8px;">
-            <a href="signaler.php?id=<?= $m['id'] ?>&action=signaler" 
-               style="flex:1;text-align:center;padding:7px;border-radius:8px;font-size:0.75rem;color:#8B1A1A;background:#fce8e8;text-decoration:none;border:1px solid rgba(139,26,26,0.15);transition:all .2s;"
-               onmouseover="this.style.background='#8B1A1A';this.style.color='#fff'"
-               onmouseout="this.style.background='#fce8e8';this.style.color='#8B1A1A'">
-              🚨 Signaler
-            </a>
-            <a href="signaler.php?id=<?= $m['id'] ?>&action=bloquer"
-               style="flex:1;text-align:center;padding:7px;border-radius:8px;font-size:0.75rem;color:#3A2218;background:#FAF6F0;text-decoration:none;border:1px solid #EDE5D8;transition:all .2s;"
-               onmouseover="this.style.background='#3A2218';this.style.color='#fff'"
-               onmouseout="this.style.background='#FAF6F0';this.style.color='#3A2218'">
-              🚫 Bloquer
-            </a>
-          </div>
+              <div class="cta-text">💌 Intéressé(e) ?</div>
+              <div class="cta-sub">Notre équipe vous contacte sous 24h</div>
+            </div>
+            <div class="action-btns">
+              <a href="signaler.php?id=<?= $m['id'] ?>" class="btn-signaler">🚨 Signaler</a>
+              <a href="signaler.php?id=<?= $m['id'] ?>&action=bloquer" class="btn-bloquer">🚫 Bloquer</a>
+            </div>
           </div>
         </div>
       <?php endforeach; ?>
@@ -341,30 +171,16 @@ $prenom_user = $_SESSION['prenom'];
   </div>
 </div>
 
-
-    <div class="modal-actions">
-      <button class="modal-btn modal-btn-send" onclick="ouvrirDepuisProfil()">💬 Envoyer un message</button>
-      <button class="modal-btn modal-btn-cancel" onclick="fermerModal('modal-profil')">Fermer</button>
-    </div>
-  </div>
-</div>
-
 <script>
-let currentMemberId = null;
-let currentMembrePrenom = null;
-
-// ── FILTRES ──
 function filtrer() {
   const genre = document.getElementById('f-genre').value;
   const age   = document.getElementById('f-age').value;
   const cards = document.querySelectorAll('.profile-card');
   let visible = 0;
-
   cards.forEach(card => {
     const g = card.dataset.genre;
     const a = parseInt(card.dataset.age);
     let show = true;
-
     if (genre && g !== genre) show = false;
     if (age) {
       if (age === '55+' && a < 55) show = false;
@@ -376,23 +192,12 @@ function filtrer() {
     card.style.display = show ? '' : 'none';
     if (show) visible++;
   });
-
-  document.getElementById('count-info').textContent =
-    `${visible} profil${visible > 1 ? 's' : ''} trouvé${visible > 1 ? 's' : ''}`;
+  document.getElementById('count-info').textContent = `${visible} profil${visible > 1 ? 's' : ''} trouvé${visible > 1 ? 's' : ''}`;
 }
 
-// ── LIKE ──
 function toggleLike(btn) {
   btn.classList.toggle('liked');
   btn.textContent = btn.classList.contains('liked') ? '♥' : '♡';
-}
-
-// ── UTILS ──
-function fermerModal(id) {
-  document.getElementById(id).classList.remove('open');
-}
-function closeIfOutside(e, id) {
-  if (e.target === document.getElementById(id)) fermerModal(id);
 }
 </script>
 </body>
