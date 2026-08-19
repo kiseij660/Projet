@@ -23,10 +23,15 @@ try {
 }
 
 // Récupérer tous les membres sauf l'utilisateur connecté
-$stmt = $pdo->prepare("SELECT id, prenom, nom, je_suis, ville, age FROM inscriptions WHERE actif = 1 AND id != :id ORDER BY date_inscription DESC");
-$stmt->execute([':id' => $_SESSION['user_id']]);
+$stmt = $pdo->prepare("SELECT id, prenom, nom, je_suis, ville, date_naissance, centres_interet, photo, 
+    TIMESTAMPDIFF(YEAR, date_naissance, CURDATE()) AS age 
+    FROM inscriptions 
+    WHERE actif = 1 AND id != :id
+    ORDER BY date_inscription DESC");
+$stmt->execute([':id' => $user_id]);
 $membres = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+$user_id    = $_SESSION['user_id'];
 $prenom_user = $_SESSION['prenom'];
 ?>
 <!DOCTYPE html>
@@ -122,6 +127,8 @@ $prenom_user = $_SESSION['prenom'];
       transform: translateY(-6px);
       box-shadow: 0 16px 48px rgba(58,34,24,0.15);
     }
+    .profile-img-wrap .profile-badge { position:absolute;top:12px;left:12px; }
+    .profile-img-wrap .like-btn { position:absolute;bottom:12px;right:12px; }
     .profile-avatar {
       width: 100%; aspect-ratio: 1;
       background: linear-gradient(135deg, #EDE5D8, #D4C5B0);
@@ -228,6 +235,14 @@ $prenom_user = $_SESSION['prenom'];
     .info-row span:first-child { color: #7A6E68; }
     .info-row span:last-child { color: #3A2218; font-weight: 500; }
 
+    .profile-cta {
+      margin-top: 14px;
+      background: linear-gradient(135deg, #fce8e8, #FAF6F0);
+      border: 1px solid rgba(139,26,26,0.15);
+      border-radius: 10px; padding: 12px 14px; text-align: center;
+    }
+    .cta-text { font-size: 0.88rem; color: #8B1A1A; font-weight: 500; }
+    .cta-sub  { font-size: 0.75rem; color: #7A6E68; margin-top: 2px; }
     @media (max-width: 600px) {
       .grid { grid-template-columns: 1fr 1fr; gap: 14px; }
     }
@@ -239,6 +254,7 @@ $prenom_user = $_SESSION['prenom'];
   <a href="profils.php" class="nav-logo">♡ Vie à deux</a>
   <div class="nav-right">
     <span style="color:rgba(255,255,255,0.7);font-size:0.85rem">Bonjour, <?= htmlspecialchars($prenom_user) ?> 👋</span>
+    <a href="parametres.php" style="color:rgba(255,255,255,0.8);text-decoration:none;font-size:0.88rem;">⚙ Paramètres</a>
     <a href="deconnexion.php" class="nav-logout">Déconnexion</a>
     <a href="#" class="nav-avatar"><?= strtoupper(substr($prenom_user, 0, 1)) ?></a>
   </div>
@@ -271,6 +287,13 @@ $prenom_user = $_SESSION['prenom'];
 
 <!-- GRILLE -->
 <div class="main">
+  <div style="background:#fff;border-left:4px solid #8B1A1A;border-radius:0 12px 12px 0;padding:18px 24px;margin-bottom:28px;display:flex;align-items:center;gap:16px;box-shadow:0 4px 16px rgba(58,34,24,0.08);">
+    <div style="font-size:1.6rem">📞</div>
+    <div>
+      <h4 style="font-size:0.95rem;color:#3A2218;margin-bottom:3px;">Comment ça marche ?</h4>
+      <p style="font-size:0.82rem;color:#7A6E68;">Parcourez les profils et repérez vos coups de cœur. Notre équipe vous rappelle personnellement sous 24h.</p>
+    </div>
+  </div>
   <div class="grid" id="grid">
     <?php if (empty($membres)): ?>
       <div class="empty-state">Aucun autre membre pour l'instant. Revenez bientôt !</div>
@@ -279,24 +302,38 @@ $prenom_user = $_SESSION['prenom'];
         <div class="profile-card"
              data-genre="<?= htmlspecialchars($m['je_suis']) ?>"
              data-age="<?= $m['age'] ?>">
-          <div class="profile-avatar">
-            <?= strtoupper(substr($m['prenom'], 0, 1)) ?>
+          <div class="profile-img-wrap" style="position:relative;aspect-ratio:3/4;overflow:hidden;">
+            <?php if (!empty($m['photo'])): ?>
+              <img src="<?= htmlspecialchars($m['photo']) ?>" alt="<?= htmlspecialchars($m['prenom']) ?>" style="width:100%;height:100%;object-fit:cover;display:block;" loading="lazy"/>
+            <?php else: ?>
+              <div style="width:100%;height:100%;background:linear-gradient(135deg,#EDE5D8,#D4C5B0);display:flex;align-items:center;justify-content:center;font-size:4rem;color:#8B1A1A;">
+                <?= strtoupper(substr($m['prenom'], 0, 1)) ?>
+              </div>
+            <?php endif; ?>
             <span class="profile-badge"><?= $m['je_suis'] === 'Une femme' ? '♀' : '♂' ?> <?= $m['age'] ?> ans</span>
             <button class="like-btn" onclick="toggleLike(this)" title="J'aime">♡</button>
           </div>
           <div class="profile-info">
             <div class="profile-name"><?= htmlspecialchars($m['prenom']) ?>, <?= $m['age'] ?> ans</div>
             <div class="profile-meta">📍 <?= htmlspecialchars($m['ville']) ?></div>
-            <div class="profile-actions">
-              <button class="btn-action btn-primary"
-                onclick="openMessage(<?= $m['id'] ?>, '<?= htmlspecialchars($m['prenom']) ?>')">
-                💬 Message
-              </button>
-              <button class="btn-action btn-secondary"
-                onclick="openProfil(<?= $m['id'] ?>, '<?= htmlspecialchars($m['prenom']) ?>', '<?= htmlspecialchars($m['nom']) ?>', '<?= $m['age'] ?>', '<?= htmlspecialchars($m['ville']) ?>', '<?= htmlspecialchars($m['je_suis']) ?>')">
-                👤 Profil
-              </button>
-            </div>
+            <div class="profile-cta">
+            <div class="cta-text">💌 Intéressé(e) ?</div>
+            <div class="cta-sub">Notre équipe vous contacte sous 24h</div>
+          </div>
+          <div style="display:flex;gap:6px;margin-top:8px;">
+            <a href="signaler.php?id=<?= $m['id'] ?>&action=signaler" 
+               style="flex:1;text-align:center;padding:7px;border-radius:8px;font-size:0.75rem;color:#8B1A1A;background:#fce8e8;text-decoration:none;border:1px solid rgba(139,26,26,0.15);transition:all .2s;"
+               onmouseover="this.style.background='#8B1A1A';this.style.color='#fff'"
+               onmouseout="this.style.background='#fce8e8';this.style.color='#8B1A1A'">
+              🚨 Signaler
+            </a>
+            <a href="signaler.php?id=<?= $m['id'] ?>&action=bloquer"
+               style="flex:1;text-align:center;padding:7px;border-radius:8px;font-size:0.75rem;color:#3A2218;background:#FAF6F0;text-decoration:none;border:1px solid #EDE5D8;transition:all .2s;"
+               onmouseover="this.style.background='#3A2218';this.style.color='#fff'"
+               onmouseout="this.style.background='#FAF6F0';this.style.color='#3A2218'">
+              🚫 Bloquer
+            </a>
+          </div>
           </div>
         </div>
       <?php endforeach; ?>
@@ -304,33 +341,7 @@ $prenom_user = $_SESSION['prenom'];
   </div>
 </div>
 
-<!-- MODAL MESSAGE -->
-<div class="modal-overlay" id="modal-msg" onclick="closeIfOutside(event, 'modal-msg')">
-  <div class="modal">
-    <h3 id="msg-titre">Envoyer un message</h3>
-    <p class="sub" id="msg-sub">Écrivez votre premier message</p>
-    <div id="msg-form">
-      <textarea id="msg-texte" placeholder="Bonjour ! J'ai vu votre profil et…"></textarea>
-      <div class="modal-actions">
-        <button class="modal-btn modal-btn-send" onclick="envoyerMessage()">Envoyer ✉</button>
-        <button class="modal-btn modal-btn-cancel" onclick="fermerModal('modal-msg')">Annuler</button>
-      </div>
-    </div>
-    <div class="modal-success" id="msg-success">
-      <div class="check">✅</div>
-      <p>Message envoyé avec succès !<br><small style="color:#7A6E68">Fonctionnalité complète bientôt disponible.</small></p>
-    </div>
-  </div>
-</div>
 
-<!-- MODAL PROFIL -->
-<div class="modal-overlay" id="modal-profil" onclick="closeIfOutside(event, 'modal-profil')">
-  <div class="modal">
-    <h3>Fiche profil</h3>
-    <div class="modal-profil-info">
-      <div class="big-avatar" id="profil-avatar"></div>
-      <div id="profil-details"></div>
-    </div>
     <div class="modal-actions">
       <button class="modal-btn modal-btn-send" onclick="ouvrirDepuisProfil()">💬 Envoyer un message</button>
       <button class="modal-btn modal-btn-cancel" onclick="fermerModal('modal-profil')">Fermer</button>
@@ -374,46 +385,6 @@ function filtrer() {
 function toggleLike(btn) {
   btn.classList.toggle('liked');
   btn.textContent = btn.classList.contains('liked') ? '♥' : '♡';
-}
-
-// ── MESSAGE ──
-function openMessage(id, prenom) {
-  currentMemberId = id;
-  currentMembrePrenom = prenom;
-  document.getElementById('msg-titre').textContent = `Message à ${prenom}`;
-  document.getElementById('msg-sub').textContent = `Écrivez votre premier message à ${prenom}`;
-  document.getElementById('msg-texte').value = '';
-  document.getElementById('msg-form').style.display = '';
-  document.getElementById('msg-success').style.display = 'none';
-  document.getElementById('modal-msg').classList.add('open');
-}
-
-function envoyerMessage() {
-  const texte = document.getElementById('msg-texte').value.trim();
-  if (!texte) { alert('Écrivez un message avant d\'envoyer !'); return; }
-  // Simulation envoi (à connecter à une vraie table messages)
-  document.getElementById('msg-form').style.display = 'none';
-  document.getElementById('msg-success').style.display = 'block';
-  setTimeout(() => fermerModal('modal-msg'), 2500);
-}
-
-// ── PROFIL ──
-function openProfil(id, prenom, nom, age, ville, genre) {
-  currentMemberId = id;
-  currentMembrePrenom = prenom;
-  document.getElementById('profil-avatar').textContent = prenom.charAt(0).toUpperCase();
-  document.getElementById('profil-details').innerHTML = `
-    <div class="info-row"><span>Prénom & Nom</span><span>${prenom} ${nom}</span></div>
-    <div class="info-row"><span>Genre</span><span>${genre}</span></div>
-    <div class="info-row"><span>Âge</span><span>${age} ans</span></div>
-    <div class="info-row"><span>Ville</span><span>${ville}</span></div>
-  `;
-  document.getElementById('modal-profil').classList.add('open');
-}
-
-function ouvrirDepuisProfil() {
-  fermerModal('modal-profil');
-  setTimeout(() => openMessage(currentMemberId, currentMembrePrenom), 200);
 }
 
 // ── UTILS ──

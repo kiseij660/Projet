@@ -348,6 +348,13 @@
     .reveal.visible { opacity: 1; transform: none; }
 
     /* ── RESPONSIVE ── */
+    .critere {
+      font-size: 0.78rem; color: #B0A8A0;
+      padding: 3px 0; transition: color .2s;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .critere.ok { color: #2E7D32; }
+    .critere.ok::first-letter { content: "✓"; }
     @media (max-width: 900px) {
       .hero-inner { grid-template-columns: 1fr; }
       .hero-card { max-width: 480px; }
@@ -428,6 +435,11 @@
           </div>
         </div>
 
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" name="email" placeholder="votre@email.com" required />
+        </div>
+
         <div class="form-row">
           <div class="form-group">
             <label>Je suis</label>
@@ -448,25 +460,50 @@
           </div>
         </div>
 
-        <div class="form-group">
-          <label>Ma ville ou code postal</label>
-          <input type="text" name="ville" placeholder="Ex : Paris, 75001…" required />
-        </div>
-
         <div class="form-row">
           <div class="form-group">
-            <label>Mon âge</label>
-            <input type="number" name="age" placeholder="Âge" min="18" max="99" required />
+            <label>Ma ville</label>
+            <input type="text" name="ville" placeholder="Ex : Paris, Lyon…" required />
           </div>
           <div class="form-group">
-            <label>Téléphone</label>
-            <input type="tel" name="telephone" placeholder="+33 6 …" required />
+            <label>Date de naissance</label>
+            <input type="date" name="date_naissance" max="2006-01-01" required />
           </div>
+        </div>
+
+        <div class="form-group">
+          <label>Téléphone</label>
+          <input type="tel" name="telephone" placeholder="+33 6 …" required />
+        </div>
+
+        <div class="form-group">
+          <label>Centres d'intérêt</label>
+          <input type="text" name="centres_interet" placeholder="Ex : Voyage, Cuisine, Sport…" />
         </div>
 
         <div class="form-group">
           <label>Mot de passe</label>
-          <input type="password" name="mot_de_passe" placeholder="Choisissez un mot de passe" required />
+          <input type="password" name="mot_de_passe" id="mdp" placeholder="Créez votre mot de passe" required oninput="checkMdp()"/>
+          <!-- Barre de force -->
+          <div id="mdp-bar-wrap" style="display:none;margin-top:8px;">
+            <div style="height:6px;background:#EDE5D8;border-radius:10px;overflow:hidden;">
+              <div id="mdp-bar" style="height:100%;width:0%;border-radius:10px;transition:all .3s;"></div>
+            </div>
+            <div id="mdp-label" style="font-size:0.75rem;margin-top:4px;font-weight:500;"></div>
+          </div>
+          <!-- Critères -->
+          <div id="mdp-criteres" style="display:none;margin-top:10px;background:#FAF6F0;border-radius:10px;padding:10px 14px;">
+            <div class="critere" id="c-len">  ✗ Au moins 8 caractères</div>
+            <div class="critere" id="c-maj">  ✗ Au moins une majuscule (A-Z)</div>
+            <div class="critere" id="c-chif"> ✗ Au moins un chiffre (0-9)</div>
+            <div class="critere" id="c-spec"> ✗ Au moins un caractère spécial (!@#$...)</div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Confirmer mot de passe</label>
+          <input type="password" name="confirm_mdp" id="confirm-mdp" placeholder="Répétez le mot de passe" required oninput="checkConfirm()"/>
+          <div id="confirm-msg" style="font-size:0.78rem;margin-top:5px;"></div>
         </div>
 
         <button type="submit" class="btn-primary">S'inscrire gratuitement →</button>
@@ -656,31 +693,88 @@
       <p class="footer-desc">La rencontre sérieuse et bienveillante, pour tous ceux qui croient encore à l'amour vrai.</p>
     </div>
     <div class="footer-col">
-      <h5>Découvrir</h5>
-      <a href="#">Comment ça marche</a>
-      <a href="#">Profils populaires</a>
-      <a href="#">Témoignages</a>
-      <a href="#">Blog</a>
+      <h5>Navigation</h5>
+      <a href="#comment">Comment ça marche</a>
+      <a href="#profils">Profils populaires</a>
+      <a href="#securite">Sécurité</a>
+      <a href="connexion.php">Connexion</a>
     </div>
     <div class="footer-col">
-      <h5>Aide</h5>
-      <a href="#">Centre d'aide</a>
-      <a href="#">Sécurité</a>
-      <a href="#">Signalement</a>
-      <a href="#">Contact</a>
+      <h5>Mon compte</h5>
+      <a href="index.html">S'inscrire gratuitement</a>
+      <a href="connexion.php">Se connecter</a>
+      <a href="mdp_oublie.php">Mot de passe oublié</a>
     </div>
     <div class="footer-col">
-      <h5>Légal</h5>
-      <a href="#">CGU</a>
-      <a href="#">Confidentialité</a>
-      <a href="#">Cookies</a>
-      <a href="#">Mentions légales</a>
+      <h5>Contact</h5>
+      <a href="mailto:contact@vieadeux.fr">contact@vieadeux.fr</a>
     </div>
   </div>
   <div class="footer-bottom">
-    © 2024 Vie à deux — Tous droits réservés · Fait avec ♡ en France
+    © 2025 Vie à deux — Tous droits réservés &nbsp;|&nbsp; Site sécurisé 🔒 &nbsp;|&nbsp; Données personnelles protégées conformément au RGPD
   </div>
 </footer>
+
+<script>
+function checkMdp() {
+  const mdp = document.getElementById('mdp').value;
+  const bar = document.getElementById('mdp-bar');
+  const label = document.getElementById('mdp-label');
+  const wrap = document.getElementById('mdp-bar-wrap');
+  const criteres = document.getElementById('mdp-criteres');
+
+  wrap.style.display = mdp.length > 0 ? '' : 'none';
+  criteres.style.display = mdp.length > 0 ? '' : 'none';
+
+  const len  = mdp.length >= 8;
+  const maj  = /[A-Z]/.test(mdp);
+  const chif = /[0-9]/.test(mdp);
+  const spec = /[!@#$%^&*()_+\-=\[\]{};':"\|,.<>\/?]/.test(mdp);
+
+  // Mise à jour critères
+  setCritere('c-len',  len,  '✓ Au moins 8 caractères', '✗ Au moins 8 caractères');
+  setCritere('c-maj',  maj,  '✓ Au moins une majuscule (A-Z)', '✗ Au moins une majuscule (A-Z)');
+  setCritere('c-chif', chif, '✓ Au moins un chiffre (0-9)', '✗ Au moins un chiffre (0-9)');
+  setCritere('c-spec', spec, '✓ Au moins un caractère spécial (!@#$...)', '✗ Au moins un caractère spécial (!@#$...)');
+
+  // Force
+  const score = [len, maj, chif, spec].filter(Boolean).length;
+  const configs = [
+    { w:'0%',   color:'#EDE5D8', txt:'' },
+    { w:'25%',  color:'#e74c3c', txt:'Très faible 🔴' },
+    { w:'50%',  color:'#e67e22', txt:'Faible 🟠' },
+    { w:'75%',  color:'#f1c40f', txt:'Moyen 🟡' },
+    { w:'100%', color:'#27ae60', txt:'Fort 🟢' },
+  ];
+  const c = configs[score];
+  bar.style.width  = c.w;
+  bar.style.background = c.color;
+  label.textContent = c.txt;
+  label.style.color = c.color;
+
+  checkConfirm();
+}
+
+function setCritere(id, ok, txtOk, txtNon) {
+  const el = document.getElementById(id);
+  el.textContent = ok ? txtOk : txtNon;
+  el.className = 'critere' + (ok ? ' ok' : '');
+}
+
+function checkConfirm() {
+  const mdp     = document.getElementById('mdp').value;
+  const confirm = document.getElementById('confirm-mdp').value;
+  const msg     = document.getElementById('confirm-msg');
+  if (!confirm) { msg.textContent = ''; return; }
+  if (mdp === confirm) {
+    msg.textContent = '✓ Les mots de passe correspondent';
+    msg.style.color = '#27ae60';
+  } else {
+    msg.textContent = '✗ Les mots de passe ne correspondent pas';
+    msg.style.color = '#e74c3c';
+  }
+}
+</script>
 
 <script>
   // Scroll reveal

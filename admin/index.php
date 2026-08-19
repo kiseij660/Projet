@@ -60,6 +60,7 @@ if ($connecte) {
     $femmes = $pdo->query("SELECT COUNT(*) FROM inscriptions WHERE je_suis='Une femme' AND actif=1")->fetchColumn();
     $hommes = $pdo->query("SELECT COUNT(*) FROM inscriptions WHERE je_suis='Un homme' AND actif=1")->fetchColumn();
     $semaine= $pdo->query("SELECT COUNT(*) FROM inscriptions WHERE date_inscription >= DATE_SUB(NOW(), INTERVAL 7 DAY) AND actif=1")->fetchColumn();
+    $signalements = $pdo->query("SELECT COUNT(*) FROM signalements WHERE traite=0")->fetchColumn();
 }
 ?>
 <!DOCTYPE html>
@@ -240,6 +241,10 @@ if ($connecte) {
     <div class="stat-card">
       <div class="num"><?= $semaine ?></div>
       <div class="label">Cette semaine</div>
+    </div>
+    <div class="stat-card" style="border-left:3px solid #8B1A1A;">
+      <div class="num" style="color:<?= $signalements > 0 ? '#8B1A1A' : '#4CAF50' ?>"><?= $signalements ?></div>
+      <div class="label">Signalements en attente</div>
     </div>
   </div>
 
