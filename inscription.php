@@ -51,7 +51,14 @@ $erreurs = [];
 if (empty($prenom) || empty($nom))         $erreurs[] = 'Prénom et nom requis.';
 if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL))
                                            $erreurs[] = 'Email invalide.';
-if (empty($je_suis))                       $erreurs[] = 'Veuillez indiquer votre genre.';
+// Validation des valeurs autorisées
+$genres_valides  = ['Une femme', 'Un homme'];
+$cherche_valides = ['Un homme', 'Une femme', 'Peu importe'];
+
+if (empty($je_suis) || !in_array($je_suis, $genres_valides))
+    $erreurs[] = 'Veuillez sélectionner un genre valide.';
+if (!empty($je_cherche) && !in_array($je_cherche, $cherche_valides))
+    $erreurs[] = 'Valeur "Je cherche" invalide.';
 if (empty($ville))                         $erreurs[] = 'Ville requise.';
 if (empty($telephone))                     $erreurs[] = 'Téléphone requis.';
 if (!empty($telephone) && !preg_match('/^\+[1-9][0-9]{7,14}$/', $telephone))
