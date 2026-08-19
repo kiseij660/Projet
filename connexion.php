@@ -26,6 +26,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $identifiant  = htmlspecialchars(trim($_POST['identifiant'] ?? ''));
     $mot_de_passe = $_POST['mot_de_passe'] ?? '';
 
+    // Normaliser si c'est un téléphone
+    if (preg_match('/^[0-9+]/', $identifiant)) {
+        $identifiant = preg_replace('/[^0-9+]/', '', $identifiant);
+        if (preg_match('/^0[67]/', $identifiant)) {
+            $identifiant = '+33' . substr($identifiant, 1);
+        }
+    }
+
     if (empty($identifiant) || empty($mot_de_passe)) {
         $erreur = 'Veuillez remplir tous les champs.';
     } else {

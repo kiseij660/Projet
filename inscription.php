@@ -29,6 +29,22 @@ $centres          = htmlspecialchars(trim($_POST['centres_interet'] ?? ''));
 $mot_de_passe     = $_POST['mot_de_passe'] ?? '';
 $confirm_mdp      = $_POST['confirm_mdp'] ?? '';
 
+// ── Normalisation du téléphone ──
+function normaliserTelephone($tel) {
+    // Supprimer tout sauf chiffres et +
+    $tel = preg_replace('/[^0-9+]/', '', $tel);
+    // Convertir 06... ou 07... en +336... ou +337...
+    if (preg_match('/^0[67]/', $tel)) {
+        $tel = '+33' . substr($tel, 1);
+    }
+    // Convertir 336... en +336...
+    if (preg_match('/^33[67]/', $tel)) {
+        $tel = '+' . $tel;
+    }
+    return $tel;
+}
+$telephone = normaliserTelephone($telephone);
+
 // ── Validations ──
 $erreurs = [];
 
@@ -38,6 +54,8 @@ if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL))
 if (empty($je_suis))                       $erreurs[] = 'Veuillez indiquer votre genre.';
 if (empty($ville))                         $erreurs[] = 'Ville requise.';
 if (empty($telephone))                     $erreurs[] = 'Téléphone requis.';
+if (!empty($telephone) && !preg_match('/^\+[1-9][0-9]{7,14}$/', $telephone))
+                                           $erreurs[] = 'Numéro de téléphone invalide. Format : +33 6 XX XX XX XX';
 if (empty($date_naissance))               $erreurs[] = 'Date de naissance requise.';
 
 // Vérification âge minimum 18 ans
