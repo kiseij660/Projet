@@ -96,8 +96,28 @@ if ($connecte) {
     $stmt->execute($params);
     $inscriptions = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // Stats
-    $total  = $pdo->query("SELECT COUNT(*) FROM inscriptions WHERE actif=1")->fetchColumn();
+    // ── Action désactiver/réactiver membre ──
+    if (isset($_GET['desactiver'])) {
+        $pdo->prepare("UPDATE inscriptions SET actif=0 WHERE id=:id")
+            ->execute([':id' => intval($_GET['desactiver'])]);
+        header('Location: index.php');
+        exit;
+    }
+    if (isset($_GET['reactiver'])) {
+        $pdo->prepare("UPDATE inscriptions SET actif=1 WHERE id=:id")
+            ->execute([':id' => intval($_GET['reactiver'])]);
+        header('Location: index.php');
+        exit;
+    }
+    if (isset($_GET['supprimer'])) {
+        $pdo->prepare("DELETE FROM inscriptions WHERE id=:id")
+            ->execute([':id' => intval($_GET['supprimer'])]);
+        header('Location: index.php');
+        exit;
+    }
+
+    // ── Stats
+    $total  = $pdo->query("SELECT COUNT(*) FROM inscriptions")->fetchColumn();
     $femmes = $pdo->query("SELECT COUNT(*) FROM inscriptions WHERE je_suis='Une femme' AND actif=1")->fetchColumn();
     $hommes = $pdo->query("SELECT COUNT(*) FROM inscriptions WHERE je_suis='Un homme' AND actif=1")->fetchColumn();
     $semaine= $pdo->query("SELECT COUNT(*) FROM inscriptions WHERE date_inscription >= DATE_SUB(NOW(), INTERVAL 7 DAY) AND actif=1")->fetchColumn();
@@ -357,7 +377,7 @@ if ($connecte) {
       </thead>
       <tbody>
         <?php foreach ($inscriptions as $r): ?>
-        <tr>
+        <tr class="<?= $r['actif'] ? '' : 'inactif' ?>">
           <td style="color:#ccc"><?= $r['id'] ?></td>
           <td style="font-weight:500"><?= htmlspecialchars($r['prenom'] . ' ' . $r['nom']) ?></td>
           <td>
@@ -370,6 +390,28 @@ if ($connecte) {
           <td><span class="tel"><?= htmlspecialchars($r['telephone']) ?></span></td>
           <td><?= htmlspecialchars($r['je_cherche']) ?></td>
           <td class="date-small"><?= date('d/m/Y H:i', strtotime($r['date_inscription'])) ?></td>
+          <td>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+              <?php if ($r['actif']): ?>
+                <a href="?desactiver=<?= $r['id'] ?>"
+                   onclick="return confirm('Désactiver <?= htmlspecialchars($r['prenom']) ?> ?')"
+                   style="padding:5px 10px;background:#fff3cd;color:#856404;border-radius:6px;font-size:0.75rem;text-decoration:none;border:1px solid #ffc107;">
+                  ⏸ Désactiver
+                </a>
+              <?php else: ?>
+                <a href="?reactiver=<?= $r['id'] ?>"
+                   onclick="return confirm('Réactiver <?= htmlspecialchars($r['prenom']) ?> ?')"
+                   style="padding:5px 10px;background:#d4edda;color:#155724;border-radius:6px;font-size:0.75rem;text-decoration:none;border:1px solid #28a745;">
+                  ▶ Réactiver
+                </a>
+              <?php endif; ?>
+              <a href="?supprimer=<?= $r['id'] ?>"
+                 onclick="return confirm('⚠️ Supprimer définitivement <?= htmlspecialchars($r['prenom']) ?> ? Cette action est irréversible !')"
+                 style="padding:5px 10px;background:#fce8e8;color:#8B1A1A;border-radius:6px;font-size:0.75rem;text-decoration:none;border:1px solid rgba(139,26,26,0.3);">
+                🗑 Supprimer
+              </a>
+            </div>
+          </td>
         </tr>
         <?php endforeach; ?>
       </tbody>
