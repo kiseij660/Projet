@@ -8,15 +8,52 @@
 $ADMIN_USER = 'admin';
 $ADMIN_PASS = 'vieadeux2024'; // À changer absolument !
 
+// ── Configuration session sécurisée ──
+ini_set('session.cookie_httponly', 1);  // HttpOnly — JS ne peut pas lire le cookie
+ini_set('session.cookie_samesite', 'Strict');
+// ini_set('session.cookie_secure', 1); // Décommenter en HTTPS
+
 session_start();
 
-if (isset($_POST['login'])) {
+// ── Rate Limiting — bloquer brute force ──
+$ip         = $_SERVER['REMOTE_ADDR'];
+$cle_essais = 'admin_essais_' . md5($ip);
+$cle_blocage= 'admin_blocage_' . md5($ip);
+
+if (!isset($_SESSION[$cle_essais]))  $_SESSION[$cle_essais]  = 0;
+if (!isset($_SESSION[$cle_blocage])) $_SESSION[$cle_blocage] = 0;
+
+$est_bloque  = false;
+$temps_restant = 0;
+
+if ($_SESSION[$cle_blocage] > time()) {
+    $est_bloque    = true;
+    $temps_restant = $_SESSION[$cle_blocage] - time();
+}
+
+if (isset($_POST['login']) && !$est_bloque) {
     if ($_POST['user'] === $ADMIN_USER && $_POST['pass'] === $ADMIN_PASS) {
+        // ✅ Connexion réussie
+        $_SESSION[$cle_essais] = 0;  // Réinitialiser les essais
+        session_regenerate_id(true); // 🔒 Prévenir la session fixation
         $_SESSION['admin'] = true;
     } else {
+        // ❌ Échec — incrémenter et bloquer
+        $_SESSION[$cle_essais]++;
+        $essais = $_SESSION[$cle_essais];
+
+        // Durée de blocage exponentielle : 1min, 3min, 5min, 10min...
+        $durees = [1 => 60, 2 => 180, 3 => 300, 4 => 600, 5 => 1800];
+        $duree  = $durees[min($essais, 5)] ?? 1800;
+
+        $_SESSION[$cle_blocage] = time() + $duree;
         $erreur_login = true;
+        $tentatives_restantes = max(0, 5 - $essais);
     }
+} elseif (isset($_POST['login']) && $est_bloque) {
+    $erreur_login = true;
 }
+
 if (isset($_GET['logout'])) {
     session_destroy();
     header('Location: index.php');
@@ -202,13 +239,22 @@ if ($connecte) {
   <div class="login-card">
     <h1>♡ Vie à deux</h1>
     <p>Panneau d'administration — accès réservé</p>
-    <?php if (!empty($erreur_login)): ?>
-      <div class="erreur">Identifiants incorrects. Réessayez.</div>
+    <?php if ($est_bloque): ?>
+      <div class="erreur">
+        🔒 Trop de tentatives échouées. Réessayez dans <strong><?= gmdate('i:s', $temps_restant) ?></strong>.
+      </div>
+    <?php elseif (!empty($erreur_login)): ?>
+      <div class="erreur">
+        Identifiants incorrects.
+        <?php if (isset($tentatives_restantes) && $tentatives_restantes > 0): ?>
+          <?= $tentatives_restantes ?> tentative<?= $tentatives_restantes > 1 ? 's' : '' ?> restante<?= $tentatives_restantes > 1 ? 's' : '' ?>.
+        <?php endif; ?>
+      </div>
     <?php endif; ?>
     <form method="POST">
       <input type="text"     name="user" placeholder="Identifiant" required/>
       <input type="password" name="pass" placeholder="Mot de passe" required/>
-      <button type="submit" name="login" class="btn-login">Se connecter</button>
+      <button type="submit" name="login" class="btn-login" <?= $est_bloque ? 'disabled style="opacity:0.5;cursor:not-allowed"' : '' ?>>Se connecter</button>
     </form>
   </div>
 </div>
