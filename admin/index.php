@@ -42,13 +42,17 @@ if (isset($_POST['login']) && !$est_bloque) {
         $_SESSION[$cle_essais]++;
         $essais = $_SESSION[$cle_essais];
 
-        // Durée de blocage exponentielle : 1min, 3min, 5min, 10min...
-        $durees = [1 => 60, 2 => 180, 3 => 300, 4 => 600, 5 => 1800];
-        $duree  = $durees[min($essais, 5)] ?? 1800;
-
-        $_SESSION[$cle_blocage] = time() + $duree;
+        // Bloquer seulement après 3 échecs
         $erreur_login = true;
-        $tentatives_restantes = max(0, 5 - $essais);
+        $tentatives_restantes = max(0, 3 - $essais);
+
+        if ($essais >= 3) {
+            // Durée de blocage exponentielle après 3 échecs
+            $bloc = $essais - 2; // 1, 2, 3...
+            $durees = [1 => 60, 2 => 180, 3 => 300, 4 => 600];
+            $duree  = $durees[min($bloc, 4)] ?? 600;
+            $_SESSION[$cle_blocage] = time() + $duree;
+        }
     }
 } elseif (isset($_POST['login']) && $est_bloque) {
     $erreur_login = true;
@@ -241,7 +245,7 @@ if ($connecte) {
     <p>Panneau d'administration — accès réservé</p>
     <?php if ($est_bloque): ?>
       <div class="erreur">
-        🔒 Trop de tentatives échouées. Réessayez dans <strong><?= gmdate('i:s', $temps_restant) ?></strong>.
+        🔒 Trop de tentatives échouées. Réessayez dans <strong id="countdown"><?= gmdate('i:s', $temps_restant) ?></strong>.
       </div>
     <?php elseif (!empty($erreur_login)): ?>
       <div class="erreur">
@@ -254,7 +258,22 @@ if ($connecte) {
     <form method="POST">
       <input type="text"     name="user" placeholder="Identifiant" required/>
       <input type="password" name="pass" placeholder="Mot de passe" required/>
-      <button type="submit" name="login" class="btn-login" <?= $est_bloque ? 'disabled style="opacity:0.5;cursor:not-allowed"' : '' ?>>Se connecter</button>
+      <?php if ($est_bloque): ?>
+    <script>
+    let restant = <?= $temps_restant ?>;
+    function majCompteur() {
+      if (restant <= 0) { location.reload(); return; }
+      const m = String(Math.floor(restant / 60)).padStart(2,'0');
+      const s = String(restant % 60).padStart(2,'0');
+      const el = document.getElementById('countdown');
+      if (el) el.textContent = m + ':' + s;
+      restant--;
+      setTimeout(majCompteur, 1000);
+    }
+    majCompteur();
+    </script>
+    <?php endif; ?>
+    <button type="submit" name="login" class="btn-login" <?= $est_bloque ? 'disabled style="opacity:0.5;cursor:not-allowed"' : '' ?>>Se connecter</button>
     </form>
   </div>
 </div>
