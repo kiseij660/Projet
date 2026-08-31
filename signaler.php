@@ -63,9 +63,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['signaler'])) {
     if (!in_array($raison, $raisons_valides)) {
         $erreur = 'Veuillez sélectionner une raison valide.';
     } else {
-        $pdo->prepare("INSERT INTO signalements (id_signaleur, id_signale, raison, description) VALUES (:sig, :sig2, :raison, :desc)")
-            ->execute([':sig'=>$user_id,':sig2'=>$id_cible,':raison'=>$raison,':desc'=>$description]);
-        $succes = "signale";
+        // Vérifier si l'utilisateur a déjà signalé cette personne
+        $check = $pdo->prepare("SELECT COUNT(*) FROM signalements WHERE id_signaleur = :sig AND id_signale = :sig2");
+        $check->execute([':sig'=>$user_id,':sig2'=>$id_cible]);
+        
+        if ($check->fetchColumn() > 0) {
+            $erreur = 'Vous avez déjà signalé ce profil. Notre équipe va examiner votre signalement précédent.';
+        } else {
+            $pdo->prepare("INSERT INTO signalements (id_signaleur, id_signale, raison, description) VALUES (:sig, :sig2, :raison, :desc)")
+                ->execute([':sig'=>$user_id,':sig2'=>$id_cible,':raison'=>$raison,':desc'=>$description]);
+            $succes = "signale";
+        }
     }
 }
 
@@ -164,7 +172,7 @@ $prenom_cible = htmlspecialchars($cible['prenom']);
 
     <!-- Signaler -->
     <div class="section active" id="section-signaler">
-      <form method="POST">
+      <form method="POST" action="signaler.php?id=<?= $id_cible ?>">
         <div class="form-group">
           <label>Raison du signalement</label>
           <select name="raison" required>
@@ -193,7 +201,7 @@ $prenom_cible = htmlspecialchars($cible['prenom']);
         <br>• Vous ne verrez plus son profil
         <br>• Cette action peut être annulée dans vos paramètres
       </div>
-      <form method="POST">
+      <form method="POST" action="signaler.php?id=<?= $id_cible ?>">
         <button type="submit" name="bloquer" class="btn btn-block">🚫 Bloquer <?= $prenom_cible ?></button>
       </form>
     </div>

@@ -6,6 +6,13 @@ $pdo = new PDO('mysql:host=localhost;dbname=vieadeux;charset=utf8', 'root', '');
 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
 // Marquer comme traité
+if (isset($_GET['desactiver_sig'])) {
+    $pdo->prepare("UPDATE inscriptions SET actif=0 WHERE id=:id")
+        ->execute([':id' => intval($_GET['desactiver_sig'])]);
+    header('Location: signalements.php');
+    exit;
+}
+
 if (isset($_GET['traiter'])) {
     $pdo->prepare("UPDATE signalements SET traite=1 WHERE id=:id")->execute([':id' => intval($_GET['traiter'])]);
     header('Location: signalements.php');
@@ -14,8 +21,10 @@ if (isset($_GET['traiter'])) {
 
 $signalements = $pdo->query("
     SELECT s.*, 
-        i1.prenom AS prenom_signaleur, i1.nom AS nom_signaleur,
-        i2.prenom AS prenom_signale,  i2.nom AS nom_signale
+        i1.prenom AS prenom_signaleur, i1.nom AS nom_signaleur, i1.telephone AS tel_signaleur, i1.ville AS ville_signaleur,
+        i2.prenom AS prenom_signale,  i2.nom AS nom_signale,  i2.telephone AS tel_signale,  i2.ville AS ville_signale,
+        i2.email AS email_signale, i2.je_suis AS genre_signale,
+        TIMESTAMPDIFF(YEAR, i2.date_naissance, CURDATE()) AS age_signale
     FROM signalements s
     JOIN inscriptions i1 ON s.id_signaleur = i1.id
     JOIN inscriptions i2 ON s.id_signale   = i2.id
@@ -87,6 +96,26 @@ $signalements = $pdo->query("
           <?php endif; ?>
         </div>
         <div class="sig-body">
+          <!-- Profil signalé -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:14px;">
+            <div style="background:#fce8e8;border-radius:10px;padding:14px 16px;">
+              <div style="font-size:0.75rem;color:#8B1A1A;font-weight:600;margin-bottom:8px;text-transform:uppercase;">🚨 Profil signalé</div>
+              <div style="font-size:0.92rem;font-weight:600;color:#3A2218;"><?= htmlspecialchars($s['prenom_signale'].' '.$s['nom_signale']) ?></div>
+              <div style="font-size:0.8rem;color:#7A6E68;margin-top:3px;"><?= htmlspecialchars($s['genre_signale']) ?> · <?= $s['age_signale'] ?> ans · <?= htmlspecialchars($s['ville_signale']) ?></div>
+              <div style="font-size:0.8rem;color:#7A6E68;margin-top:2px;">📧 <?= htmlspecialchars($s['email_signale']) ?></div>
+              <div style="font-size:0.8rem;color:#7A6E68;margin-top:2px;">📞 <?= htmlspecialchars($s['tel_signale']) ?></div>
+              <div style="margin-top:10px;display:flex;gap:8px;">
+                <a href="../index.php?search=<?= urlencode($s['tel_signale']) ?>" style="font-size:0.75rem;padding:5px 10px;background:#8B1A1A;color:#fff;border-radius:6px;text-decoration:none;">Voir dans admin</a>
+                <a href="?desactiver_sig=<?= $s['id_signale'] ?>" onclick="return confirm('Désactiver ce membre ?')" style="font-size:0.75rem;padding:5px 10px;background:#fff3cd;color:#856404;border-radius:6px;text-decoration:none;border:1px solid #ffc107;">⏸ Désactiver</a>
+              </div>
+            </div>
+            <div style="background:#f0f0f0;border-radius:10px;padding:14px 16px;">
+              <div style="font-size:0.75rem;color:#666;font-weight:600;margin-bottom:8px;text-transform:uppercase;">👤 Signalé par</div>
+              <div style="font-size:0.92rem;font-weight:600;color:#3A2218;"><?= htmlspecialchars($s['prenom_signaleur'].' '.$s['nom_signaleur']) ?></div>
+              <div style="font-size:0.8rem;color:#7A6E68;margin-top:3px;">📍 <?= htmlspecialchars($s['ville_signaleur']) ?></div>
+              <div style="font-size:0.8rem;color:#7A6E68;margin-top:2px;">📞 <?= htmlspecialchars($s['tel_signaleur']) ?></div>
+            </div>
+          </div>
           <div class="sig-row">
             <div class="sig-item"><span>Raison</span><span class="raison"><?= htmlspecialchars($s['raison']) ?></span></div>
           </div>

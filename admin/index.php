@@ -122,6 +122,21 @@ if ($connecte) {
     $hommes = $pdo->query("SELECT COUNT(*) FROM inscriptions WHERE je_suis='Un homme' AND actif=1")->fetchColumn();
     $semaine= $pdo->query("SELECT COUNT(*) FROM inscriptions WHERE date_inscription >= DATE_SUB(NOW(), INTERVAL 7 DAY) AND actif=1")->fetchColumn();
     $signalements = $pdo->query("SELECT COUNT(*) FROM signalements WHERE traite=0")->fetchColumn();
+
+    // ── Derniers signalements en attente (aperçu rapide) ──
+    $derniers_signalements = $pdo->query("
+        SELECT s.*,
+            i1.prenom AS prenom_signaleur, i1.nom AS nom_signaleur,
+            i2.prenom AS prenom_signale,  i2.nom AS nom_signale,
+            i2.ville AS ville_signale, i2.telephone AS tel_signale,
+            TIMESTAMPDIFF(YEAR, i2.date_naissance, CURDATE()) AS age_signale
+        FROM signalements s
+        JOIN inscriptions i1 ON s.id_signaleur = i1.id
+        JOIN inscriptions i2 ON s.id_signale   = i2.id
+        WHERE s.traite = 0
+        ORDER BY s.date_signalement DESC
+        LIMIT 5
+    ")->fetchAll(PDO::FETCH_ASSOC);
 }
 ?>
 <!DOCTYPE html>
@@ -305,6 +320,7 @@ if ($connecte) {
   <a href="index.php" class="active">📋 Inscriptions</a>
   <a href="index.php?ordre=age">👥 Par âge</a>
   <a href="index.php?ordre=ville">📍 Par ville</a>
+  <a href="signalements.php">🚨 Signalements<?= $signalements > 0 ? ' <span style="background:#8B1A1A;color:#fff;border-radius:10px;padding:1px 8px;font-size:0.72rem;margin-left:4px;">'.$signalements.'</span>' : '' ?></a>
   <a href="?logout=1" class="logout" style="color:#f0a0a0;">🔓 Déconnexion</a>
 </nav>
 
@@ -333,6 +349,42 @@ if ($connecte) {
       <div class="label">Signalements en attente</div>
     </div>
   </div>
+
+  <!-- Aperçu rapide des signalements en attente -->
+  <?php if (!empty($derniers_signalements)): ?>
+  <div class="table-wrap" style="margin-bottom:24px;">
+    <div class="table-header" style="display:flex;align-items:center;justify-content:space-between;padding:18px 24px;border-bottom:1px solid #f0ece6;">
+      <h2 style="font-size:1rem;">🚨 Derniers signalements en attente</h2>
+      <a href="signalements.php" style="font-size:0.8rem;color:#8B1A1A;text-decoration:none;font-weight:600;">Voir tout →</a>
+    </div>
+    <div style="padding:8px 24px 20px;">
+      <?php foreach ($derniers_signalements as $s): ?>
+        <div style="display:flex;align-items:flex-start;gap:14px;padding:14px 0;border-bottom:1px solid #f7f4f0;">
+          <div style="flex:1;">
+            <div style="font-size:0.88rem;">
+              <span style="font-weight:600;color:#3A2218;"><?= htmlspecialchars($s['prenom_signale'].' '.$s['nom_signale']) ?></span>
+              <span style="color:#999;font-size:0.78rem;"> (<?= $s['age_signale'] ?> ans · <?= htmlspecialchars($s['ville_signale']) ?>)</span>
+              signalé par
+              <span style="font-weight:600;color:#5A4A3A;"><?= htmlspecialchars($s['prenom_signaleur'].' '.$s['nom_signaleur']) ?></span>
+            </div>
+            <div style="margin-top:6px;">
+              <span style="display:inline-block;background:#fce8e8;color:#8B1A1A;padding:2px 10px;border-radius:20px;font-size:0.72rem;font-weight:600;">
+                <?= htmlspecialchars($s['raison']) ?>
+              </span>
+              <span style="font-size:0.75rem;color:#bbb;margin-left:8px;"><?= date('d/m/Y H:i', strtotime($s['date_signalement'])) ?></span>
+            </div>
+            <?php if (!empty($s['description'])): ?>
+              <div style="font-size:0.82rem;color:#5A4A3A;background:#faf6f0;border-radius:8px;padding:8px 12px;margin-top:8px;">
+                <?= nl2br(htmlspecialchars($s['description'])) ?>
+              </div>
+            <?php endif; ?>
+          </div>
+          <a href="signalements.php" style="flex-shrink:0;font-size:0.75rem;padding:6px 12px;background:#3A2218;color:#fff;border-radius:6px;text-decoration:none;white-space:nowrap;">Traiter</a>
+        </div>
+      <?php endforeach; ?>
+    </div>
+  </div>
+  <?php endif; ?>
 
   <!-- Filtres -->
   <form class="filters" method="GET">
