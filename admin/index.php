@@ -15,47 +15,58 @@ ini_set('session.cookie_samesite', 'Strict');
 
 session_start();
 
-// ── Rate Limiting — bloquer brute force ──
-$ip         = $_SERVER['REMOTE_ADDR'];
-$cle_essais = 'admin_essais_' . md5($ip);
-$cle_blocage= 'admin_blocage_' . md5($ip);
+// ── Rate Limiting basé sur l'IP (fichier JSON) ──
+$ip          = $_SERVER['REMOTE_ADDR'];
+$ip_hash     = md5($ip); // hasher l'IP pour ne pas exposer les adresses en clair
+$rate_file   = sys_get_temp_dir() . '/rl_admin_' . $ip_hash . '.json';
 
-if (!isset($_SESSION[$cle_essais]))  $_SESSION[$cle_essais]  = 0;
-if (!isset($_SESSION[$cle_blocage])) $_SESSION[$cle_blocage] = 0;
+// Charger les données de l'IP
+$rate_data = ['essais' => 0, 'bloque_jusqu' => 0];
+if (file_exists($rate_file)) {
+    $json = json_decode(file_get_contents($rate_file), true);
+    if ($json) $rate_data = $json;
+}
 
-$est_bloque  = false;
+$est_bloque    = false;
 $temps_restant = 0;
 
-if ($_SESSION[$cle_blocage] > time()) {
+if ($rate_data['bloque_jusqu'] > time()) {
     $est_bloque    = true;
-    $temps_restant = $_SESSION[$cle_blocage] - time();
+    $temps_restant = $rate_data['bloque_jusqu'] - time();
 }
 
 if (isset($_POST['login']) && !$est_bloque) {
     if ($_POST['user'] === $ADMIN_USER && $_POST['pass'] === $ADMIN_PASS) {
-        // ✅ Connexion réussie
-        $_SESSION[$cle_essais] = 0;  // Réinitialiser les essais
+        // ✅ Connexion réussie — réinitialiser les tentatives IP
+        $rate_data = ['essais' => 0, 'bloque_jusqu' => 0];
+        file_put_contents($rate_file, json_encode($rate_data));
         session_regenerate_id(true); // 🔒 Prévenir la session fixation
         $_SESSION['admin'] = true;
     } else {
-        // ❌ Échec — incrémenter et bloquer
-        $_SESSION[$cle_essais]++;
-        $essais = $_SESSION[$cle_essais];
-
-        // Bloquer seulement après 3 échecs
+        // ❌ Échec — incrémenter basé sur IP
+        $rate_data['essais']++;
+        $essais = $rate_data['essais'];
         $erreur_login = true;
         $tentatives_restantes = max(0, 3 - $essais);
 
         if ($essais >= 3) {
-            // Durée de blocage exponentielle après 3 échecs
-            $bloc = $essais - 2; // 1, 2, 3...
+            $bloc   = $essais - 2;
             $durees = [1 => 60, 2 => 180, 3 => 300, 4 => 600];
             $duree  = $durees[min($bloc, 4)] ?? 600;
-            $_SESSION[$cle_blocage] = time() + $duree;
+            $rate_data['bloque_jusqu'] = time() + $duree;
         }
+        file_put_contents($rate_file, json_encode($rate_data));
     }
 } elseif (isset($_POST['login']) && $est_bloque) {
     $erreur_login = true;
+}
+
+// Nettoyer les vieux fichiers de rate limiting (> 1h) pour ne pas encombrer
+if (rand(1, 20) === 1) {
+    foreach (glob(sys_get_temp_dir() . '/rl_admin_*.json') as $f) {
+        $d = json_decode(file_get_contents($f), true);
+        if ($d && $d['bloque_jusqu'] < time() - 3600) @unlink($f);
+    }
 }
 
 if (isset($_GET['logout'])) {
@@ -122,21 +133,6 @@ if ($connecte) {
     $hommes = $pdo->query("SELECT COUNT(*) FROM inscriptions WHERE je_suis='Un homme' AND actif=1")->fetchColumn();
     $semaine= $pdo->query("SELECT COUNT(*) FROM inscriptions WHERE date_inscription >= DATE_SUB(NOW(), INTERVAL 7 DAY) AND actif=1")->fetchColumn();
     $signalements = $pdo->query("SELECT COUNT(*) FROM signalements WHERE traite=0")->fetchColumn();
-
-    // ── Derniers signalements en attente (aperçu rapide) ──
-    $derniers_signalements = $pdo->query("
-        SELECT s.*,
-            i1.prenom AS prenom_signaleur, i1.nom AS nom_signaleur,
-            i2.prenom AS prenom_signale,  i2.nom AS nom_signale,
-            i2.ville AS ville_signale, i2.telephone AS tel_signale,
-            TIMESTAMPDIFF(YEAR, i2.date_naissance, CURDATE()) AS age_signale
-        FROM signalements s
-        JOIN inscriptions i1 ON s.id_signaleur = i1.id
-        JOIN inscriptions i2 ON s.id_signale   = i2.id
-        WHERE s.traite = 0
-        ORDER BY s.date_signalement DESC
-        LIMIT 5
-    ")->fetchAll(PDO::FETCH_ASSOC);
 }
 ?>
 <!DOCTYPE html>
@@ -320,7 +316,6 @@ if ($connecte) {
   <a href="index.php" class="active">📋 Inscriptions</a>
   <a href="index.php?ordre=age">👥 Par âge</a>
   <a href="index.php?ordre=ville">📍 Par ville</a>
-  <a href="signalements.php">🚨 Signalements<?= $signalements > 0 ? ' <span style="background:#8B1A1A;color:#fff;border-radius:10px;padding:1px 8px;font-size:0.72rem;margin-left:4px;">'.$signalements.'</span>' : '' ?></a>
   <a href="?logout=1" class="logout" style="color:#f0a0a0;">🔓 Déconnexion</a>
 </nav>
 
@@ -349,42 +344,6 @@ if ($connecte) {
       <div class="label">Signalements en attente</div>
     </div>
   </div>
-
-  <!-- Aperçu rapide des signalements en attente -->
-  <?php if (!empty($derniers_signalements)): ?>
-  <div class="table-wrap" style="margin-bottom:24px;">
-    <div class="table-header" style="display:flex;align-items:center;justify-content:space-between;padding:18px 24px;border-bottom:1px solid #f0ece6;">
-      <h2 style="font-size:1rem;">🚨 Derniers signalements en attente</h2>
-      <a href="signalements.php" style="font-size:0.8rem;color:#8B1A1A;text-decoration:none;font-weight:600;">Voir tout →</a>
-    </div>
-    <div style="padding:8px 24px 20px;">
-      <?php foreach ($derniers_signalements as $s): ?>
-        <div style="display:flex;align-items:flex-start;gap:14px;padding:14px 0;border-bottom:1px solid #f7f4f0;">
-          <div style="flex:1;">
-            <div style="font-size:0.88rem;">
-              <span style="font-weight:600;color:#3A2218;"><?= htmlspecialchars($s['prenom_signale'].' '.$s['nom_signale']) ?></span>
-              <span style="color:#999;font-size:0.78rem;"> (<?= $s['age_signale'] ?> ans · <?= htmlspecialchars($s['ville_signale']) ?>)</span>
-              signalé par
-              <span style="font-weight:600;color:#5A4A3A;"><?= htmlspecialchars($s['prenom_signaleur'].' '.$s['nom_signaleur']) ?></span>
-            </div>
-            <div style="margin-top:6px;">
-              <span style="display:inline-block;background:#fce8e8;color:#8B1A1A;padding:2px 10px;border-radius:20px;font-size:0.72rem;font-weight:600;">
-                <?= htmlspecialchars($s['raison']) ?>
-              </span>
-              <span style="font-size:0.75rem;color:#bbb;margin-left:8px;"><?= date('d/m/Y H:i', strtotime($s['date_signalement'])) ?></span>
-            </div>
-            <?php if (!empty($s['description'])): ?>
-              <div style="font-size:0.82rem;color:#5A4A3A;background:#faf6f0;border-radius:8px;padding:8px 12px;margin-top:8px;">
-                <?= nl2br(htmlspecialchars($s['description'])) ?>
-              </div>
-            <?php endif; ?>
-          </div>
-          <a href="signalements.php" style="flex-shrink:0;font-size:0.75rem;padding:6px 12px;background:#3A2218;color:#fff;border-radius:6px;text-decoration:none;white-space:nowrap;">Traiter</a>
-        </div>
-      <?php endforeach; ?>
-    </div>
-  </div>
-  <?php endif; ?>
 
   <!-- Filtres -->
   <form class="filters" method="GET">
