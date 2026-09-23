@@ -3,6 +3,7 @@
 //  parametres.php — Paramètres utilisateur
 // ============================================================
 session_start();
+require_once 'csrf.php';
 
 if (empty($_SESSION['user_id'])) {
     header('Location: connexion.php');
@@ -31,10 +32,18 @@ $stmt->execute([':id' => $user_id]);
 $membre = $stmt->fetch(PDO::FETCH_ASSOC);
 
 // ── ACTION : Modifier infos ──
+if (isset($_POST['action'])) { verifier_csrf(); }
+
 if (isset($_POST['action']) && $_POST['action'] === 'infos') {
     $prenom  = htmlspecialchars(trim($_POST['prenom'] ?? ''));
     $ville   = htmlspecialchars(trim($_POST['ville'] ?? ''));
-    $centres = htmlspecialchars(trim($_POST['centres_interet'] ?? ''));
+    $interets_valides = ['Voyage','Cuisine','Sport','Musique','Cinéma','Lecture','Yoga','Running',
+        'Randonnée','Photographie','Danse','Art','Nature','Jardinage','Gastronomie',
+        'Tennis','Natation','Théâtre','Méditation','Fitness'];
+    $centres_raw = $_POST['centres_interet'] ?? [];
+    $centres_raw = is_array($centres_raw) ? $centres_raw : [];
+    $centres_filtres = array_filter($centres_raw, fn($v) => in_array($v, $interets_valides));
+    $centres = implode(',', array_slice($centres_filtres, 0, 5));
     $cherche = htmlspecialchars(trim($_POST['je_cherche'] ?? ''));
 
     if (empty($prenom) || empty($ville)) {
@@ -233,6 +242,7 @@ if (isset($_POST['action']) && $_POST['action'] === 'supprimer') {
 
     <form method="POST">
       <input type="hidden" name="action" value="infos"/>
+      <?php echo csrf_field(); ?>
       <div class="form-row">
         <div class="form-group">
           <label>Prénom</label>
@@ -258,8 +268,23 @@ if (isset($_POST['action']) && $_POST['action'] === 'supprimer') {
         </div>
       </div>
       <div class="form-group">
-        <label>Centres d'intérêt</label>
-        <input type="text" name="centres_interet" value="<?= htmlspecialchars($membre['centres_interet']) ?>" placeholder="Voyage, Cuisine, Sport..."/>
+        <label>Centres d'intérêt <span style="font-size:0.75rem;color:#7A6E68;font-weight:400">(max 5)</span></label>
+        <?php
+        $interets_dispo = ['Voyage','Cuisine','Sport','Musique','Cinéma','Lecture','Yoga','Running',
+            'Randonnée','Photographie','Danse','Art','Nature','Jardinage','Gastronomie',
+            'Tennis','Natation','Théâtre','Méditation','Fitness'];
+        $interets_membre = explode(',', $membre['centres_interet'] ?? '');
+        ?>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:6px;">
+          <?php foreach ($interets_dispo as $interet): ?>
+          <label style="display:flex;align-items:center;gap:6px;padding:6px 8px;border:1.5px solid #EDE5D8;border-radius:8px;cursor:pointer;font-size:0.78rem;<?= in_array($interet, $interets_membre) ? 'border-color:#8B1A1A;background:#fce8e8;' : '' ?>">
+            <input type="checkbox" name="centres_interet[]" value="<?= $interet ?>"
+                   style="accent-color:#8B1A1A;"
+                   <?= in_array($interet, $interets_membre) ? 'checked' : '' ?>/>
+            <?= $interet ?>
+          </label>
+          <?php endforeach; ?>
+        </div>
       </div>
       <div class="form-group">
         <label>Email</label>
@@ -276,6 +301,7 @@ if (isset($_POST['action']) && $_POST['action'] === 'supprimer') {
 
     <form method="POST">
       <input type="hidden" name="action" value="mdp"/>
+      <?php echo csrf_field(); ?>
       <div class="form-group">
         <label>Ancien mot de passe</label>
         <input type="password" name="ancien_mdp" placeholder="Votre mot de passe actuel" required/>
@@ -308,6 +334,7 @@ if (isset($_POST['action']) && $_POST['action'] === 'supprimer') {
     <p class="card-sub" style="color:#8B1A1A;">Cette action est irréversible. Toutes vos données seront supprimées.</p>
     <form method="POST" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer votre compte ? Cette action est irréversible.')">
       <input type="hidden" name="action" value="supprimer"/>
+      <?php echo csrf_field(); ?>
       <div class="form-group">
         <label>Tapez <strong>SUPPRIMER</strong> pour confirmer</label>
         <input type="text" name="confirm_suppression" placeholder="SUPPRIMER" required/>

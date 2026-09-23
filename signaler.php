@@ -3,6 +3,7 @@
 //  signaler.php — Signalement et blocage d'un membre
 // ============================================================
 session_start();
+require_once 'csrf.php';
 
 if (empty($_SESSION['user_id'])) {
     header('Location: connexion.php');
@@ -54,6 +55,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['bloquer'])) {
 }
 
 // ── ACTION : Signaler ──
+if ($_SERVER['REQUEST_METHOD'] === 'POST') { verifier_csrf(); }
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['signaler'])) {
     $raison      = htmlspecialchars(trim($_POST['raison'] ?? ''));
     $description = htmlspecialchars(trim($_POST['description'] ?? ''));
@@ -173,6 +176,7 @@ $prenom_cible = htmlspecialchars($cible['prenom']);
     <!-- Signaler -->
     <div class="section active" id="section-signaler">
       <form method="POST" action="signaler.php?id=<?= $id_cible ?>">
+        <?php echo csrf_field(); ?>
         <div class="form-group">
           <label>Raison du signalement</label>
           <select name="raison" required>
@@ -202,6 +206,7 @@ $prenom_cible = htmlspecialchars($cible['prenom']);
         <br>• Cette action peut être annulée dans vos paramètres
       </div>
       <form method="POST" action="signaler.php?id=<?= $id_cible ?>">
+        <?php echo csrf_field(); ?>
         <button type="submit" name="bloquer" class="btn btn-block">🚫 Bloquer <?= $prenom_cible ?></button>
       </form>
     </div>

@@ -3,6 +3,7 @@
 //  connexion.php v2 — Login par email OU téléphone
 // ============================================================
 session_start();
+require_once 'csrf.php';
 
 if (!empty($_SESSION['user_id'])) {
     header('Location: profils.php');
@@ -23,6 +24,7 @@ if (isset($_GET['inscrit'])) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    verifier_csrf();
     $identifiant  = htmlspecialchars(trim($_POST['identifiant'] ?? ''));
     $mot_de_passe = $_POST['mot_de_passe'] ?? '';
 
@@ -118,7 +120,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 <body>
 <div class="left">
-  <a href="index.html" class="left-logo">♡ Vie à deux</a>
+  <a href="index.php" class="left-logo">♡ Vie à deux</a>
   <h1>Bon retour parmi <em>nous</em> !</h1>
   <p>Des milliers de célibataires sincères vous attendent.</p>
   <div class="left-badges">
@@ -129,7 +131,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </div>
 <div class="right">
   <div class="form-card">
-    <a href="index.html" class="back-link">← Retour à l'accueil</a>
+    <a href="index.php" class="back-link">← Retour à l'accueil</a>
     <h2>Se connecter</h2>
     <p class="sub">Email ou téléphone + mot de passe</p>
 
@@ -141,6 +143,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <?php endif; ?>
 
     <form method="POST" action="connexion.php">
+      <?php echo csrf_field(); ?>
       <div class="form-group">
         <label>Email ou téléphone</label>
         <input type="text" name="identifiant" placeholder="ex: contact@mail.com ou +33 6..."
@@ -154,7 +157,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <button type="submit" class="btn-connexion">Se connecter →</button>
     </form>
     <div class="divider">ou</div>
-    <a href="index.html" class="btn-inscription">Créer un compte gratuitement</a>
+    <a href="index.php" class="btn-inscription">Créer un compte gratuitement</a>
   </div>
 </div>
 </body>

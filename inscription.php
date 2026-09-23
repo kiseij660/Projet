@@ -3,6 +3,7 @@
 //  inscription.php v2 — Avec email, date naissance, validation
 // ============================================================
 session_start();
+require_once 'csrf.php';
 
 $host   = 'localhost';
 $dbname = 'vieadeux';
@@ -16,6 +17,9 @@ try {
     die('Erreur BDD : ' . $e->getMessage());
 }
 
+// ── Vérification CSRF ──
+if ($_SERVER['REQUEST_METHOD'] === 'POST') { verifier_csrf(); }
+
 // ── Récupération ──
 $prenom           = htmlspecialchars(trim($_POST['prenom'] ?? ''));
 $nom              = htmlspecialchars(trim($_POST['nom'] ?? ''));
@@ -25,7 +29,16 @@ $je_cherche       = htmlspecialchars(trim($_POST['je_cherche'] ?? ''));
 $ville            = htmlspecialchars(trim($_POST['ville'] ?? ''));
 $date_naissance   = $_POST['date_naissance'] ?? '';
 $telephone        = htmlspecialchars(trim($_POST['telephone'] ?? ''));
-$centres          = htmlspecialchars(trim($_POST['centres_interet'] ?? ''));
+// Centres d'intérêt — liste de checkboxes validée côté serveur
+$interets_valides = ['Voyage','Cuisine','Sport','Musique','Cinéma','Lecture','Yoga','Running',
+    'Randonnée','Photographie','Danse','Art','Nature','Jardinage','Gastronomie',
+    'Tennis','Natation','Théâtre','Méditation','Fitness'];
+$centres_raw = $_POST['centres_interet'] ?? [];
+$centres_raw = is_array($centres_raw) ? $centres_raw : [];
+// Filtrer uniquement les valeurs autorisées (validation côté serveur)
+$centres_filtres = array_filter($centres_raw, fn($v) => in_array($v, $interets_valides));
+$centres_filtres = array_slice($centres_filtres, 0, 5); // max 5
+$centres = implode(',', $centres_filtres);
 $mot_de_passe     = $_POST['mot_de_passe'] ?? '';
 $confirm_mdp      = $_POST['confirm_mdp'] ?? '';
 

@@ -3,6 +3,7 @@
 //  mdp_oublie.php — Mot de passe oublié
 // ============================================================
 session_start();
+require_once 'csrf.php';
 
 $host   = 'localhost';
 $dbname = 'vieadeux';
@@ -14,6 +15,7 @@ $type    = '';
 $envoye  = false;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    verifier_csrf();
     $telephone = htmlspecialchars(trim($_POST['telephone'] ?? ''));
 
     if (empty($telephone)) {
@@ -179,7 +181,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 <body>
 <div class="card">
-  <a href="index.html" class="logo">♡ Vie à deux</a>
+  <a href="index.php" class="logo">♡ Vie à deux</a>
 
   <?php if ($envoye): ?>
   <!-- ── SUCCÈS ── -->
@@ -206,6 +208,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <?php endif; ?>
 
   <form method="POST" action="mdp_oublie.php">
+      <?php echo csrf_field(); ?>
     <div class="form-group">
       <label>Numéro de téléphone</label>
       <input type="tel" name="telephone"
@@ -219,7 +222,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <div class="links">
     <a href="connexion.php">← Retour à la connexion</a>
     <span>|</span>
-    <a href="index.html">Créer un compte</a>
+    <a href="index.php">Créer un compte</a>
   </div>
   <?php endif; ?>
 </div>
