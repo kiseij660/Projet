@@ -361,8 +361,40 @@
     }
     .critere.ok { color: #2E7D32; }
     .critere.ok::first-letter { content: "✓"; }
+    .tag-interet {
+      display: inline-flex; align-items: center;
+      padding: 5px 12px; border-radius: 40px;
+      border: 1.5px solid #EDE5D8; background: #FAF6F0;
+      font-size: 0.75rem; color: #7A6E68;
+      cursor: pointer; transition: all .2s; user-select: none;
+    }
+    .tag-interet:hover { border-color: #8B1A1A; color: #8B1A1A; }
+    .tag-interet.selected { background: #8B1A1A; color: #fff; border-color: #8B1A1A; }
     .critere { font-size:0.78rem; color:#B0A8A0; padding:2px 0; transition:color .2s; }
+    .tag-check {
+      display: inline-flex; align-items: center;
+      padding: 5px 12px; border-radius: 20px;
+      border: 1.5px solid #EDE5D8; background: #FAF6F0;
+      font-size: 0.76rem; color: #7A6E68; cursor: pointer;
+      transition: all .2s; user-select: none;
+      white-space: nowrap;
+    }
+    .tag-check.selected {
+      background: #8B1A1A; color: #fff; border-color: #8B1A1A;
+    }
+    #tags-container { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 6px; }
     .critere.ok { color:#27ae60; }
+    .tag-interet {
+      display: inline-flex; align-items: center;
+      padding: 6px 13px; border-radius: 40px;
+      border: 1.5px solid #EDE5D8; background: #FAF6F0;
+      font-size: 0.78rem; color: #7A6E68;
+      cursor: pointer; transition: all .2s; user-select: none;
+    }
+    .tag-interet:hover { border-color: #8B1A1A; color: #8B1A1A; background: #fce8e8; }
+    .tag-interet.selected { background: #8B1A1A; color: #fff; border-color: #8B1A1A; }
+    .critere { font-size: 0.75rem; color: #B0A8A0; padding: 2px 0; transition: color .2s; }
+    .critere.ok { color: #27ae60; }
     @media (max-width: 900px) {
       .hero-inner { grid-template-columns: 1fr; }
       .hero-card { max-width: 480px; }
@@ -427,113 +459,147 @@
 
     <!-- CARD -->
     <div class="hero-card">
-      <p class="card-title">Commencer maintenant</p>
-      <p class="card-sub">Créez votre profil en moins de 2 minutes</p>
 
-      <form method="POST" action="inscription.php">
+      <!-- BARRE DE PROGRESSION -->
+      <div style="display:flex;align-items:center;margin-bottom:22px;">
+        <?php $etapes = ['Email','Identité','Profil','Intérêts']; ?>
+        <?php foreach ($etapes as $i => $nom): ?>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:3px;">
+            <div id="dot-<?= $i+1 ?>" style="width:30px;height:30px;border-radius:50%;background:<?= $i===0?'#8B1A1A':'#EDE5D8' ?>;color:<?= $i===0?'#fff':'#7A6E68' ?>;display:flex;align-items:center;justify-content:center;font-size:0.72rem;font-weight:700;transition:all .35s;"><?= $i+1 ?></div>
+            <span id="label-<?= $i+1 ?>" style="font-size:0.62rem;color:<?= $i===0?'#8B1A1A':'#B0A8A0' ?>;font-weight:<?= $i===0?'600':'400' ?>;white-space:nowrap;"><?= $nom ?></span>
+          </div>
+          <?php if ($i < 3): ?>
+          <div style="flex:1;height:2px;background:#EDE5D8;margin:0 4px;margin-bottom:14px;border-radius:2px;">
+            <div id="line-<?= $i+1 ?>" style="height:100%;width:0%;background:#8B1A1A;border-radius:2px;transition:width .4s;"></div>
+          </div>
+          <?php endif; ?>
+        <?php endforeach; ?>
+      </div>
+
+      <form method="POST" action="inscription.php" id="form-inscr">
         <?php echo csrf_field(); ?>
 
-        <div class="form-row">
+        <!-- ═══ ÉTAPE 1 — Email & Mot de passe ═══ -->
+        <div class="etape" id="etape-1">
+          <p class="card-title" style="font-size:1.3rem;">Commençons ici 👋</p>
+          <p class="card-sub">Votre email et mot de passe</p>
           <div class="form-group">
-            <label>Prénom</label>
-            <input type="text" name="prenom" placeholder="Votre prénom" required />
+            <label>Email</label>
+            <input type="email" name="email" id="e-email" placeholder="votre@email.com"/>
           </div>
           <div class="form-group">
-            <label>Nom</label>
-            <input type="text" name="nom" placeholder="Votre nom" required />
+            <label>Mot de passe</label>
+            <input type="password" name="mot_de_passe" id="mdp" placeholder="Min. 8 car., majuscule, chiffre" oninput="checkMdp()"/>
+            <div id="mdp-bar-wrap" style="display:none;margin-top:8px;">
+              <div style="height:5px;background:#EDE5D8;border-radius:10px;overflow:hidden;">
+                <div id="mdp-bar" style="height:100%;width:0%;border-radius:10px;transition:all .3s;"></div>
+              </div>
+              <div id="mdp-label" style="font-size:0.72rem;margin-top:4px;font-weight:600;"></div>
+              <div style="margin-top:8px;background:#FAF6F0;border-radius:8px;padding:8px 12px;">
+                <div class="critere" id="c-len">✗ 8 caractères minimum</div>
+                <div class="critere" id="c-maj">✗ Une majuscule (A-Z)</div>
+                <div class="critere" id="c-chif">✗ Un chiffre (0-9)</div>
+                <div class="critere" id="c-spec">✗ Un caractère spécial (!@#$...)</div>
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Confirmer le mot de passe</label>
+            <input type="password" name="confirm_mdp" id="confirm-mdp" placeholder="Répétez votre mot de passe" oninput="checkConfirm()"/>
+            <div id="confirm-msg" style="font-size:0.75rem;margin-top:4px;"></div>
+          </div>
+          <button type="button" class="btn-primary" onclick="allerEtape(2)">Continuer →</button>
+        </div>
+
+        <!-- ═══ ÉTAPE 2 — Identité ═══ -->
+        <div class="etape" id="etape-2" style="display:none;">
+          <p class="card-title" style="font-size:1.3rem;">Qui êtes-vous ? 😊</p>
+          <p class="card-sub">Vos informations essentielles</p>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Prénom</label>
+              <input type="text" name="prenom" id="e-prenom" placeholder="Votre prénom"/>
+            </div>
+            <div class="form-group">
+              <label>Nom</label>
+              <input type="text" name="nom" id="e-nom" placeholder="Votre nom"/>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Téléphone</label>
+            <input type="tel" name="telephone" id="e-tel" placeholder="+33 6 …"/>
+          </div>
+          <div class="form-group">
+            <label>Ville</label>
+            <input type="text" name="ville" id="e-ville" placeholder="Ex : Paris, Lyon…"/>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button type="button" class="btn-primary" style="background:#F0EBE5;color:#3A2218;flex:0.4;" onclick="allerEtape(1)">← Retour</button>
+            <button type="button" class="btn-primary" style="flex:1;" onclick="allerEtape(3)">Continuer →</button>
           </div>
         </div>
 
-        <div class="form-group">
-          <label>Email</label>
-          <input type="email" name="email" placeholder="votre@email.com" required />
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label>Je suis</label>
-            <select name="je_suis" required>
-              <option value="">Je suis…</option>
-              <option>Une femme</option>
-              <option>Un homme</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Je cherche</label>
-            <select name="je_cherche">
-              <option value="">Je cherche…</option>
-              <option>Un homme</option>
-              <option>Une femme</option>
-              <option>Peu importe</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label>Ma ville</label>
-            <input type="text" name="ville" placeholder="Ex : Paris, Lyon…" required />
+        <!-- ═══ ÉTAPE 3 — Profil ═══ -->
+        <div class="etape" id="etape-3" style="display:none;">
+          <p class="card-title" style="font-size:1.3rem;">Votre profil 💑</p>
+          <p class="card-sub">Pour des suggestions personnalisées</p>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Je suis</label>
+              <select name="je_suis" id="e-jesuis">
+                <option value="">Je suis…</option>
+                <option>Une femme</option>
+                <option>Un homme</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Je cherche</label>
+              <select name="je_cherche">
+                <option value="">Je cherche…</option>
+                <option>Un homme</option>
+                <option>Une femme</option>
+                <option>Peu importe</option>
+              </select>
+            </div>
           </div>
           <div class="form-group">
             <label>Date de naissance</label>
-            <input type="date" name="date_naissance" max="2006-01-01" required />
+            <input type="date" name="date_naissance" id="e-dob" max="2006-01-01"/>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button type="button" class="btn-primary" style="background:#F0EBE5;color:#3A2218;flex:0.4;" onclick="allerEtape(2)">← Retour</button>
+            <button type="button" class="btn-primary" style="flex:1;" onclick="allerEtape(4)">Continuer →</button>
           </div>
         </div>
 
-        <div class="form-group">
-          <label>Téléphone</label>
-          <input type="tel" name="telephone" placeholder="+33 6 …" required />
-        </div>
-
-        <div class="form-group">
-          <label>Centres d'intérêt <span style="font-size:0.75rem;color:#7A6E68;font-weight:400">(choisissez jusqu'à 5)</span></label>
-          <div id="centres-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
+        <!-- ═══ ÉTAPE 4 — Centres d'intérêt ═══ -->
+        <div class="etape" id="etape-4" style="display:none;">
+          <p class="card-title" style="font-size:1.3rem;">Vos passions ✨</p>
+          <p class="card-sub">Choisissez jusqu'à <strong>5</strong> centres d'intérêt</p>
+          <div style="display:flex;flex-wrap:wrap;gap:7px;margin:12px 0;">
             <?php
-            $interets = ['Voyage','Cuisine','Sport','Musique','Cinéma','Lecture','Yoga','Running',
-                         'Randonnée','Photographie','Danse','Art','Nature','Jardinage','Gastronomie',
-                         'Tennis','Natation','Théâtre','Méditation','Fitness'];
+            $interets = ['🌍 Voyage','🍳 Cuisine','⚽ Sport','🎵 Musique','🎬 Cinéma',
+                         '📚 Lecture','🧘 Yoga','🏃 Running','🏕 Randonnée','📸 Photographie',
+                         '💃 Danse','🎨 Art','🌿 Nature','🌱 Jardinage','🍷 Gastronomie',
+                         '🎾 Tennis','🏊 Natation','🎭 Théâtre','🧠 Méditation','💪 Fitness'];
             foreach ($interets as $interet):
+              $val = preg_replace('/^[^\s]+ /', '', $interet); // valeur sans emoji
             ?>
-            <label style="display:flex;align-items:center;gap:8px;padding:7px 10px;border:1.5px solid #EDE5D8;border-radius:8px;cursor:pointer;font-size:0.82rem;color:#3A2218;transition:all .2s;" 
-                   onmouseover="this.style.borderColor='#8B1A1A'" 
-                   onmouseout="if(!this.querySelector('input').checked) this.style.borderColor='#EDE5D8'">
-              <input type="checkbox" name="centres_interet[]" value="<?= $interet ?>" 
-                     style="accent-color:#8B1A1A;" 
-                     onchange="limitCheckbox(this)"/>
+            <label class="tag-interet">
+              <input type="checkbox" name="centres_interet[]" value="<?= $val ?>" style="display:none;" onchange="toggleTag(this)"/>
               <?= $interet ?>
             </label>
             <?php endforeach; ?>
           </div>
-          <div id="centres-msg" style="font-size:0.75rem;color:#7A6E68;margin-top:6px;">0 / 5 sélectionnés</div>
-        </div>
-
-        <div class="form-group">
-          <label>Mot de passe</label>
-          <input type="password" name="mot_de_passe" id="mdp" placeholder="Créez votre mot de passe" required oninput="checkMdp()"/>
-          <!-- Barre de force -->
-          <div id="mdp-bar-wrap" style="display:none;margin-top:8px;">
-            <div style="height:6px;background:#EDE5D8;border-radius:10px;overflow:hidden;">
-              <div id="mdp-bar" style="height:100%;width:0%;border-radius:10px;transition:all .3s;"></div>
-            </div>
-            <div id="mdp-label" style="font-size:0.75rem;margin-top:4px;font-weight:500;"></div>
-          </div>
-          <!-- Critères -->
-          <div id="mdp-criteres" style="display:none;margin-top:10px;background:#FAF6F0;border-radius:10px;padding:10px 14px;">
-            <div class="critere" id="c-len">  ✗ Au moins 8 caractères</div>
-            <div class="critere" id="c-maj">  ✗ Au moins une majuscule (A-Z)</div>
-            <div class="critere" id="c-chif"> ✗ Au moins un chiffre (0-9)</div>
-            <div class="critere" id="c-spec"> ✗ Au moins un caractère spécial (!@#$...)</div>
+          <div id="centres-msg" style="font-size:0.75rem;color:#7A6E68;margin-bottom:14px;">0 / 5 sélectionnés</div>
+          <div style="display:flex;gap:8px;">
+            <button type="button" class="btn-primary" style="background:#F0EBE5;color:#3A2218;flex:0.4;" onclick="allerEtape(3)">← Retour</button>
+            <button type="submit" class="btn-primary" style="flex:1;">S'inscrire →</button>
           </div>
         </div>
 
-        <div class="form-group">
-          <label>Confirmer mot de passe</label>
-          <input type="password" name="confirm_mdp" id="confirm-mdp" placeholder="Répétez le mot de passe" required oninput="checkConfirm()"/>
-          <div id="confirm-msg" style="font-size:0.78rem;margin-top:5px;"></div>
-        </div>
-
-      </div><!-- fin hack -->
-      <p class="card-legal">
+      </form>
+      <p class="card-legal" style="margin-top:12px;">
         En vous inscrivant, vous acceptez nos <a href="#">CGU</a> et notre <a href="#">politique de confidentialité</a>.
       </p>
     </div>
@@ -740,124 +806,140 @@
 </footer>
 
 <script>
+// ── Navigation multi-étapes ──────────────────────────────
+function allerEtape(num) {
+  const current = parseInt(document.querySelector('.etape:not([style*="display:none"])').id.split('-')[1]);
+
+  // Validation avant d'avancer
+  if (num > current) {
+    if (current === 1) {
+      const email = document.getElementById('e-email').value;
+      const mdp   = document.getElementById('mdp').value;
+      const conf  = document.getElementById('confirm-mdp').value;
+      if (!email.includes('@') || !email.includes('.')) { alert('Email invalide.'); return; }
+      if (mdp.length < 8) { alert('Mot de passe trop court (min. 8 caractères).'); return; }
+      if (!/[A-Z]/.test(mdp)) { alert('Le mot de passe doit contenir une majuscule.'); return; }
+      if (!/[0-9]/.test(mdp)) { alert('Le mot de passe doit contenir un chiffre.'); return; }
+      if (mdp !== conf) { alert('Les mots de passe ne correspondent pas.'); return; }
+    }
+    if (current === 2) {
+      if (!document.getElementById('e-prenom').value) { alert('Prénom requis.'); return; }
+      if (!document.getElementById('e-nom').value)    { alert('Nom requis.'); return; }
+      if (!document.getElementById('e-tel').value)    { alert('Téléphone requis.'); return; }
+      if (!document.getElementById('e-ville').value)  { alert('Ville requise.'); return; }
+    }
+    if (current === 3) {
+      if (!document.getElementById('e-jesuis').value) { alert('Veuillez indiquer votre genre.'); return; }
+      if (!document.getElementById('e-dob').value)    { alert('Date de naissance requise.'); return; }
+    }
+  }
+
+  document.querySelectorAll('.etape').forEach(e => e.style.display = 'none');
+  document.getElementById('etape-' + num).style.display = '';
+
+  // Mettre à jour les indicateurs
+  for (let i = 1; i <= 4; i++) {
+    const dot   = document.getElementById('dot-' + i);
+    const label = document.getElementById('label-' + i);
+    if (i < num) {
+      dot.textContent = '✓'; dot.style.background = '#4CAF50'; dot.style.color = '#fff';
+      label.style.color = '#4CAF50'; label.style.fontWeight = '600';
+    } else if (i === num) {
+      dot.textContent = i; dot.style.background = '#8B1A1A'; dot.style.color = '#fff';
+      label.style.color = '#8B1A1A'; label.style.fontWeight = '600';
+    } else {
+      dot.textContent = i; dot.style.background = '#EDE5D8'; dot.style.color = '#7A6E68';
+      label.style.color = '#B0A8A0'; label.style.fontWeight = '400';
+    }
+    if (i < 4) {
+      const line = document.getElementById('line-' + i);
+      if (line) line.style.width = i < num ? '100%' : '0%';
+    }
+  }
+}
+
+// ── Tags centres d'intérêt ────────────────────────────────
+function toggleTag(cb) {
+  const checks  = document.querySelectorAll('input[name="centres_interet[]"]');
+  const checked = [...checks].filter(c => c.checked);
+  const msg     = document.getElementById('centres-msg');
+  if (cb.checked && checked.length > 5) { cb.checked = false; return; }
+  checks.forEach(c => {
+    c.parentElement.classList.toggle('selected', c.checked);
+  });
+  const n = [...checks].filter(c => c.checked).length;
+  msg.textContent = n + ' / 5 sélectionné' + (n > 1 ? 's' : '');
+  msg.style.color = n === 5 ? '#4CAF50' : '#7A6E68';
+}
+
+// ── Indicateur force mot de passe ────────────────────────
 function checkMdp() {
   const mdp = document.getElementById('mdp').value;
-  const bar = document.getElementById('mdp-bar');
-  const label = document.getElementById('mdp-label');
-  const wrap = document.getElementById('mdp-bar-wrap');
-  const criteres = document.getElementById('mdp-criteres');
-
-  wrap.style.display = mdp.length > 0 ? '' : 'none';
-  criteres.style.display = mdp.length > 0 ? '' : 'none';
-
+  document.getElementById('mdp-bar-wrap').style.display = mdp ? '' : 'none';
   const len  = mdp.length >= 8;
   const maj  = /[A-Z]/.test(mdp);
   const chif = /[0-9]/.test(mdp);
   const spec = /[!@#$%^&*()_+\-=\[\]{};':"\|,.<>\/?]/.test(mdp);
-
-  // Mise à jour critères
-  setCritere('c-len',  len,  '✓ Au moins 8 caractères', '✗ Au moins 8 caractères');
-  setCritere('c-maj',  maj,  '✓ Au moins une majuscule (A-Z)', '✗ Au moins une majuscule (A-Z)');
-  setCritere('c-chif', chif, '✓ Au moins un chiffre (0-9)', '✗ Au moins un chiffre (0-9)');
-  setCritere('c-spec', spec, '✓ Au moins un caractère spécial (!@#$...)', '✗ Au moins un caractère spécial (!@#$...)');
-
-  // Force
   const score = [len, maj, chif, spec].filter(Boolean).length;
-  const configs = [
-    { w:'0%',   color:'#EDE5D8', txt:'' },
-    { w:'25%',  color:'#e74c3c', txt:'Très faible 🔴' },
-    { w:'50%',  color:'#e67e22', txt:'Faible 🟠' },
-    { w:'75%',  color:'#f1c40f', txt:'Moyen 🟡' },
-    { w:'100%', color:'#27ae60', txt:'Fort 🟢' },
-  ];
-  const c = configs[score];
-  bar.style.width  = c.w;
-  bar.style.background = c.color;
-  label.textContent = c.txt;
-  label.style.color = c.color;
-
+  const cfg = [{w:'0%',c:'#EDE5D8',t:''},{w:'25%',c:'#e74c3c',t:'Très faible 🔴'},
+               {w:'50%',c:'#e67e22',t:'Faible 🟠'},{w:'75%',c:'#f1c40f',t:'Moyen 🟡'},
+               {w:'100%',c:'#27ae60',t:'Fort 🟢'}][score];
+  document.getElementById('mdp-bar').style.width = cfg.w;
+  document.getElementById('mdp-bar').style.background = cfg.c;
+  document.getElementById('mdp-label').textContent = cfg.t;
+  document.getElementById('mdp-label').style.color = cfg.c;
+  setC('c-len', len, '✓ 8 caractères minimum', '✗ 8 caractères minimum');
+  setC('c-maj', maj, '✓ Une majuscule', '✗ Une majuscule');
+  setC('c-chif', chif, '✓ Un chiffre', '✗ Un chiffre');
+  setC('c-spec', spec, '✓ Un caractère spécial', '✗ Un caractère spécial');
   checkConfirm();
 }
-
-function setCritere(id, ok, txtOk, txtNon) {
+function setC(id, ok, t1, t2) {
   const el = document.getElementById(id);
-  el.textContent = ok ? txtOk : txtNon;
+  if (!el) return;
+  el.textContent = ok ? t1 : t2;
   el.className = 'critere' + (ok ? ' ok' : '');
 }
-
 function checkConfirm() {
-  const mdp     = document.getElementById('mdp').value;
-  const confirm = document.getElementById('confirm-mdp').value;
-  const msg     = document.getElementById('confirm-msg');
-  if (!confirm) { msg.textContent = ''; return; }
-  if (mdp === confirm) {
-    msg.textContent = '✓ Les mots de passe correspondent';
-    msg.style.color = '#27ae60';
-  } else {
-    msg.textContent = '✗ Les mots de passe ne correspondent pas';
-    msg.style.color = '#e74c3c';
-  }
+  const mdp  = document.getElementById('mdp').value;
+  const conf = document.getElementById('confirm-mdp').value;
+  const msg  = document.getElementById('confirm-msg');
+  if (!conf) { msg.textContent = ''; return; }
+  msg.textContent = mdp === conf ? '✓ Les mots de passe correspondent' : '✗ Les mots de passe ne correspondent pas';
+  msg.style.color = mdp === conf ? '#27ae60' : '#e74c3c';
 }
-</script>
 
-<script>
-  // Scroll reveal
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach((e, i) => {
-      if (e.isIntersecting) {
-        setTimeout(() => e.target.classList.add('visible'), i * 80);
-        observer.unobserve(e.target);
-      }
-    });
-  }, { threshold: 0.12 });
-  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
-
-  // Stat counter animation
-  function animateCount(el, target, suffix = '') {
-    let start = 0;
-    const isFloat = target % 1 !== 0;
-    const step = target / 60;
-    const timer = setInterval(() => {
-      start += step;
-      if (start >= target) { start = target; clearInterval(timer); }
-      el.textContent = (isFloat ? start.toFixed(1) : Math.floor(start).toLocaleString('fr-FR')) + suffix;
-    }, 25);
-  }
-  const statObs = new IntersectionObserver((entries) => {
-    entries.forEach(e => {
-      if (e.isIntersecting) {
-        const num = e.target.querySelector('.stat-num');
-        const text = num.textContent;
-        if (text.includes('480')) animateCount(num, 480, ' K+');
-        else if (text.includes('12')) animateCount(num, 12000, '+');
-        else if (text.includes('96')) animateCount(num, 96, ' %');
-        else if (text.includes('4.8')) animateCount(num, 4.8, '★');
-        statObs.unobserve(e.target);
-      }
-    });
-  }, { threshold: 0.5 });
-  document.querySelectorAll('.stat').forEach(el => statObs.observe(el));
-</script>
-<script>
-function limitCheckbox(cb) {
-  const checks = document.querySelectorAll('input[name="centres_interet[]"]');
-  const checked = [...checks].filter(c => c.checked);
-  const msg = document.getElementById('centres-msg');
-  if (checked.length > 5) {
-    cb.checked = false;
-    msg.textContent = '5 / 5 — maximum atteint !';
-    msg.style.color = '#8B1A1A';
-    return;
-  }
-  msg.textContent = `${checked.length} / 5 sélectionné${checked.length > 1 ? 's' : ''}`;
-  msg.style.color = checked.length === 5 ? '#4CAF50' : '#7A6E68';
-  // Mettre en surbrillance les cases cochées
-  checks.forEach(c => {
-    c.parentElement.style.borderColor = c.checked ? '#8B1A1A' : '#EDE5D8';
-    c.parentElement.style.background  = c.checked ? '#fce8e8' : '';
+// ── Scroll reveal ─────────────────────────────────────────
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach((e, i) => {
+    if (e.isIntersecting) { setTimeout(() => e.target.classList.add('visible'), i * 80); observer.unobserve(e.target); }
   });
-}
+}, { threshold: 0.12 });
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
 
+// ── Stats counter ─────────────────────────────────────────
+function animateCount(el, target, suffix='') {
+  let start = 0; const isFloat = target % 1 !== 0; const step = target / 60;
+  const timer = setInterval(() => {
+    start += step;
+    if (start >= target) { start = target; clearInterval(timer); }
+    el.textContent = (isFloat ? start.toFixed(1) : Math.floor(start).toLocaleString('fr-FR')) + suffix;
+  }, 25);
+}
+const statObs = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      const num = e.target.querySelector('.stat-num');
+      const text = num.textContent;
+      if (text.includes('480')) animateCount(num, 480, ' K+');
+      else if (text.includes('12')) animateCount(num, 12000, '+');
+      else if (text.includes('96')) animateCount(num, 96, ' %');
+      else if (text.includes('4.8')) animateCount(num, 4.8, '★');
+      statObs.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.5 });
+document.querySelectorAll('.stat').forEach(el => statObs.observe(el));
 </script>
 </body>
 </html>
